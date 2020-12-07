@@ -5,6 +5,7 @@ const TOKEN_TYPE_MINUS = 'MINUS';
 const TOKEN_TYPE_NUMBER = 'NUMBER';
 const TOKEN_TYPE_DIV = 'DIV';
 const TOKEN_TYPE_MUL = 'MUL';
+const TOKEN_TYPE_POW = 'POW';
 const TOKEN_TYPE_LPAR = 'LPAR';
 const TOKEN_TYPE_RPAR = 'RPAR';
 
@@ -51,6 +52,15 @@ class BinOpNode extends ASTNode {
         this.left = left;
         this.token = this.op = op;
         this.right = right;
+        finalize(this);
+    }
+}
+
+class UnaryOpNode extends ASTNode {
+    constructor(op, expr) {
+        super();
+        this.token = this.op = op;
+        this.expr = expr;
         finalize(this);
     }
 }
@@ -141,6 +151,9 @@ class Lexer {
         if (char === ')') {
             return new Token(TOKEN_TYPE_RPAR, ')');
         }
+        if (char === '^') {
+            return new Token(TOKEN_TYPE_POW, '^');
+        }
         if (isNumber(char)) {
             return new Token(TOKEN_TYPE_NUMBER, this.number());
         }
@@ -168,8 +181,8 @@ class Lexer {
 /**
  * Precedence dictionary:
  * **additiveExpression**: **multiplicativeExpression**((PLUS|MINUS)**multiplicativeExpression**)*
- * **multiplicativeExpression**: **atom**((MUL|DIV)**atom**)*
- * **atom**: NUMBER|LPAR **additiveExpression** RPAR
+ * **multiplicativeExpression**: **powExpr**((MUL|DIV)**powExpr**)*
+ * **atom**: (PLUS|MINUS)**atom**|NUMBER|LPAR **additiveExpression** RPAR
  * 
   * @param {Lexer} lexer
   */
@@ -192,6 +205,12 @@ export class Parser {
     }
 
     atom() {
+        if (isTokenType(this.lexer.getCurrentToken(), TOKEN_TYPE_PLUS)) {
+            return new UnaryOpNode(this.eat(TOKEN_TYPE_PLUS), this.atom());
+        }
+        if (isTokenType(this.lexer.getCurrentToken(), TOKEN_TYPE_MINUS)) {
+            return new UnaryOpNode(this.eat(TOKEN_TYPE_MINUS), this.atom());
+        }
         if (isTokenType(this.lexer.getCurrentToken(), TOKEN_TYPE_NUMBER)) {
             return new NumNode(this.eat(TOKEN_TYPE_NUMBER));
         }
@@ -292,6 +311,14 @@ export class EvalInterpreter extends NodeVisitor {
         if (isTokenType(opToken, TOKEN_TYPE_DIV)) {
             return Math.floor(this.visit(node.left) / this.visit(node.right));
         }
+    }
+
+    visitUnaryOpNode(node) {
+        const opToken = node.op
+        if (isTokenType(opToken, TOKEN_TYPE_MINUS)) {
+            return this.visit(node.expr) * -1;
+        }
+        return this.visit(node.expr);
     }
 
     visitNumNode(node) {

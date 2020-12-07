@@ -2,11 +2,11 @@
 const TOKEN_TYPE_EOF = 'EOF';
 const TOKEN_TYPE_PLUS = 'PLUS';
 const TOKEN_TYPE_MINUS = 'MINUS';
-const TOKEN_TYPE_WHITESPACE = 'WHITESPACE';
 const TOKEN_TYPE_NUMBER = 'NUMBER';
 const TOKEN_TYPE_DIV = 'DIV';
 const TOKEN_TYPE_MUL = 'MUL';
-const TOKEN_TYPE_GROUP = 'GROUP';
+const TOKEN_TYPE_LPAR = 'LPAR';
+const TOKEN_TYPE_RPAR = 'RPAR';
 
 function isNumber(value) {
     return !Number.isNaN(Number.parseInt(value));
@@ -20,12 +20,38 @@ function isWhiteSpace(char) {
     return char === ' ';
 }
 
+function finalize(obj) {
+    Object.freeze(obj);
+    Object.seal(obj);
+}
+
 class Token {
     constructor (type, value) {
         this.type = type;
         this.value = value;
-        Object.freeze(this);
-        Object.seal(this);
+        finalize(this);
+    }
+}
+
+class ASTNode {
+}
+
+class NumNode extends ASTNode {
+    constructor(token) {
+        super();
+        this.token = token;
+        this.value = token.value;
+        finalize(this);
+    }
+}
+
+class BinOpNode extends ASTNode {
+    constructor(left, op, right) {
+        super();
+        this.left = left;
+        this.token = this.op = op;
+        this.right = right;
+        finalize(this);
     }
 }
 
@@ -109,6 +135,12 @@ class Lexer {
         if (char === '/') {
             return new Token(TOKEN_TYPE_DIV, '/');
         }
+        if (char === '(') {
+            return new Token(TOKEN_TYPE_LPAR, '(');
+        }
+        if (char === ')') {
+            return new Token(TOKEN_TYPE_RPAR, ')');
+        }
         if (isNumber(char)) {
             return new Token(TOKEN_TYPE_NUMBER, this.number());
         }
@@ -137,11 +169,11 @@ class Lexer {
  * Precedence dictionary:
  * **additiveExpression**: **multiplicativeExpression**((PLUS|MINUS)**multiplicativeExpression**)*
  * **multiplicativeExpression**: **atom**((MUL|DIV)**atom**)*
- * **atom**: NUMBER
+ * **atom**: NUMBER|LPAR **additiveExpression** RPAR
  * 
   * @param {Lexer} lexer
   */
-export class Interpreter {
+export class Parser {
 
     /**
      * @param {String} text
@@ -160,50 +192,188 @@ export class Interpreter {
     }
 
     atom() {
-        const token = this.eat(TOKEN_TYPE_NUMBER);
-        return token.value;
+        if (isTokenType(this.lexer.getCurrentToken(), TOKEN_TYPE_NUMBER)) {
+            return new NumNode(this.eat(TOKEN_TYPE_NUMBER));
+        }
+        if (isTokenType(this.lexer.getCurrentToken(), TOKEN_TYPE_LPAR)) {
+            let node = null;
+            this.eat(TOKEN_TYPE_LPAR);
+            node = this.additiveExpression();
+            this.eat(TOKEN_TYPE_RPAR);
+            return node;
+        }
+        this._error();
     }
 
     multiplicativeExpression() {
-        let value = this.atom();
+        let node = this.atom();
         const isMul = () => isTokenType(this.lexer.getCurrentToken(), TOKEN_TYPE_MUL);
         const isDiv = () => isTokenType(this.lexer.getCurrentToken(), TOKEN_TYPE_DIV);
         while (isMul() || isDiv()) {
             if (isMul()) {
-                this.eat(TOKEN_TYPE_MUL);
-                value *= this.atom();
+                node = new BinOpNode(node, this.eat(TOKEN_TYPE_MUL), this.atom());
                 continue;
             }
             if (isDiv()) {
-                this.eat(TOKEN_TYPE_DIV);
-                value /= this.atom();
+                node = new BinOpNode(node, this.eat(TOKEN_TYPE_DIV), this.atom());
                 continue;
             }
+            this._error();
         }
-        return value;
+        return node;
     }
 
     additiveExpression() {
-        let value = this.multiplicativeExpression();
+        let node = this.multiplicativeExpression();
         const isPlus = () => isTokenType(this.lexer.getCurrentToken(), TOKEN_TYPE_PLUS);
         const isMinus = () => isTokenType(this.lexer.getCurrentToken(), TOKEN_TYPE_MINUS);
-        let mul = 1;
         while (isPlus() || isMinus()) {
             if (isPlus()) {
-                this.eat(TOKEN_TYPE_PLUS);
-                mul = 1;
+                node = new BinOpNode(node, this.eat(TOKEN_TYPE_PLUS), this.multiplicativeExpression());
+                continue;
             }
             if (isMinus()) {
-                this.eat(TOKEN_TYPE_MINUS);
-                mul = -1;
+                node = new BinOpNode(node, this.eat(TOKEN_TYPE_MINUS), this.multiplicativeExpression());
+                continue;
             }
-            value += this.multiplicativeExpression() * mul;
+            this._error();
         }
-        return value;
+        return node;
     }
 
-    eval() {
+    parse() {
         return this.additiveExpression();
     }
 
+    _error() {
+        throw new Error('Syntax error!');
+    }
+
+}
+
+
+function ucFirst(text) {
+    if (typeof text === 'string') {
+        return text.charAt(0).toUpperCase() + text.slice(1);
+    }
+}
+class NodeVisitor {
+    visit(node) {
+        const nodeName = ucFirst((node.constructor || {}).name);
+        const methodName = `visit${nodeName}`
+        if (typeof this[methodName] === 'undefined') {
+            throw new Error(this.constructor.name + '::' + methodName + ' not exists!');
+        }
+        return this[methodName](node);
+    }
+}
+
+export class EvalInterpreter extends NodeVisitor {
+    /**
+     * 
+     * @param {Parser} parser 
+     */
+    constructor(parser) {
+        super();
+        this.parser = parser;
+    }
+
+    visitBinOpNode(node) {
+        const opToken = node.op;
+        if (isTokenType(opToken, TOKEN_TYPE_PLUS)) {
+            return this.visit(node.left) + this.visit(node.right);
+        }
+        if (isTokenType(opToken, TOKEN_TYPE_MINUS)) {
+            return this.visit(node.left) - this.visit(node.right);
+        }
+        if (isTokenType(opToken, TOKEN_TYPE_MUL)) {
+            return this.visit(node.left) * this.visit(node.right);
+        }
+        if (isTokenType(opToken, TOKEN_TYPE_DIV)) {
+            return Math.floor(this.visit(node.left) / this.visit(node.right));
+        }
+    }
+
+    visitNumNode(node) {
+        return node.value;
+    }
+
+    eval() {
+        const node = this.parser.parse();
+        return this.visit(node);
+    }
+}
+
+
+export class RPNInterpreter extends NodeVisitor {
+    /**
+     * 
+     * @param {Parser} parser 
+     */
+    constructor(parser) {
+        super();
+        this.parser = parser;
+    }
+
+    visitBinOpNode(node) {
+        const opToken = node.op;
+        if (isTokenType(opToken, TOKEN_TYPE_PLUS)) {
+            return this.visit(node.left) + ' ' + this.visit(node.right) + ' +';
+        }
+        if (isTokenType(opToken, TOKEN_TYPE_MINUS)) {
+            return this.visit(node.left) + ' ' + this.visit(node.right) + ' -';
+        }
+        if (isTokenType(opToken, TOKEN_TYPE_MUL)) {
+            return this.visit(node.left) + ' ' + this.visit(node.right) + ' *';
+        }
+        if (isTokenType(opToken, TOKEN_TYPE_DIV)) {
+            return this.visit(node.left) + ' ' + this.visit(node.right) + ' /';
+        }
+    }
+
+    visitNumNode(node) {
+        return '' + node.value;
+    }
+
+    eval() {
+        const node = this.parser.parse();
+        return this.visit(node);
+    }
+}
+
+
+export class LISPInterpreter extends NodeVisitor {
+    /**
+     * 
+     * @param {Parser} parser 
+     */
+    constructor(parser) {
+        super();
+        this.parser = parser;
+    }
+
+    visitBinOpNode(node) {
+        const opToken = node.op;
+        if (isTokenType(opToken, TOKEN_TYPE_PLUS)) {
+            return '(+ ' + this.visit(node.left) + ' ' + this.visit(node.right) + ')';
+        }
+        if (isTokenType(opToken, TOKEN_TYPE_MINUS)) {
+            return '(- ' + this.visit(node.left) + ' ' + this.visit(node.right) + ')';
+        }
+        if (isTokenType(opToken, TOKEN_TYPE_MUL)) {
+            return '(* ' + this.visit(node.left) + ' ' + this.visit(node.right) + ')';
+        }
+        if (isTokenType(opToken, TOKEN_TYPE_DIV)) {
+            return '(/ ' + this.visit(node.left) + ' ' + this.visit(node.right) + ')';
+        }
+    }
+
+    visitNumNode(node) {
+        return '' + node.value;
+    }
+
+    eval() {
+        const node = this.parser.parse();
+        return this.visit(node);
+    }
 }

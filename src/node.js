@@ -62,3 +62,43 @@ export class CompoundNode extends ASTNode {
         finalize(this);
     }
 }
+
+export class VarDeclarationNode extends ASTNode {
+    /**
+     * 
+     * @param {Token} variable 
+     * @param {Token} type 
+     */
+    constructor(variable, type) {
+        super();
+        this.variable = variable;
+        this.type = type;
+        finalize(this);
+    }
+}
+
+export class VarDeclarationListNode extends ASTNode {
+    /**
+     * 
+     * @param {VarDeclarationNode[]} nodes 
+     */
+    constructor(nodes) {
+        super();
+        this.nodes = nodes;
+        finalize(this);
+    }
+}
+
+export class BlockNode extends ASTNode {
+    /**
+     * 
+     * @param {VarDeclarationListNode} declarationListNode 
+     * @param {CompoundNode} compoundNode 
+     */
+    constructor(declarationListNode, compoundNode) {
+        super();
+        this.declarationListNode = declarationListNode;
+        this.compoundNode = compoundNode;
+        finalize(this);
+    }
+}

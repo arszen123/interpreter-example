@@ -1,11 +1,12 @@
 import { Parser } from './parser.js';
 import { isTokenType } from './helper.js';
-import { ASTNode, BinOpNode, UnaryOpNode, NumNode, AssignNode, VarNode, CompoundNode, EmptyNode } from './node.js';
+import { ASTNode, BinOpNode, UnaryOpNode, NumNode, AssignNode, VarNode, CompoundNode, EmptyNode, BlockNode, VarDeclarationListNode } from './node.js';
 import {
     TOKEN_TYPE_PLUS,
     TOKEN_TYPE_MINUS,
     TOKEN_TYPE_MUL,
     TOKEN_TYPE_DIV,
+    TOKEN_TYPE_FLOAT_DIV,
     TOKEN_TYPE_POW,
 } from './token.js';
 
@@ -35,6 +36,31 @@ export class Interpreter extends NodeVisitor {
         super();
         this.parser = parser;
         this.globalNamespace = {};
+    }
+
+    /**
+     * 
+     * @param {BlockNode} node 
+     */
+    visitBlockNode(node) {
+        if (node.declarationListNode !== null) {
+            this.visit(node.declarationListNode);
+        }
+        this.visit(node.compoundNode);
+    }
+
+    /**
+     * 
+     * @param {VarDeclarationListNode} node 
+     */
+    visitVarDeclarationListNode(node) {
+        for (const declNode of node.nodes) {
+            this.visit(declNode);
+        }
+    }
+
+    visitVarDeclarationNode(node) {
+        // ...
     }
 
     /**
@@ -93,6 +119,9 @@ export class Interpreter extends NodeVisitor {
         }
         if (isTokenType(node.op, TOKEN_TYPE_DIV)) {
             return Math.floor(this.visit(node.left) / this.visit(node.right));
+        }
+        if (isTokenType(node.op, TOKEN_TYPE_FLOAT_DIV)) {
+            return this.visit(node.left) / this.visit(node.right);
         }
         if (isTokenType(node.op, TOKEN_TYPE_POW)) {
             return this.visit(node.left) ** this.visit(node.right);

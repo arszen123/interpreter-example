@@ -1,5 +1,5 @@
 import { Lexer } from './lexer.js';
-import { BinOpNode, UnaryOpNode, NumNode, AssignNode, VarNode, CompoundNode, EmptyNode } from './node.js';
+import { BinOpNode, UnaryOpNode, NumNode, AssignNode, VarNode, CompoundNode, EmptyNode, BlockNode, VarDeclarationListNode, VarDeclarationNode } from './node.js';
 import {
     TOKEN_TYPE_NUMBER,
     TOKEN_TYPE_PLUS,
@@ -15,6 +15,15 @@ import {
     TOKEN_TYPE_DOT,
     TOKEN_TYPE_ASSIGN,
     TOKEN_TYPE_ID,
+    TOKEN_TYPE_INTEGER_CONST,
+    TOKEN_TYPE_REAL_CONST,
+    TOKEN_TYPE_INTEGER,
+    TOKEN_TYPE_REAL,
+    TOKEN_TYPE_FLOAT_DIV,
+    TOKEN_TYPE_PROGRAM,
+    TOKEN_TYPE_VAR,
+    TOKEN_TYPE_COMMA,
+    TOKEN_TYPE_COLON,
 } from './token.js';
 
 export class Parser {
@@ -42,8 +51,11 @@ export class Parser {
         if (this.lexer.isCurrentTokenType(TOKEN_TYPE_MINUS)) {
             return new UnaryOpNode(this.eat(TOKEN_TYPE_MINUS), this.atom());
         }
-        if (this.lexer.isCurrentTokenType(TOKEN_TYPE_NUMBER)) {
-            return new NumNode(this.eat(TOKEN_TYPE_NUMBER));
+        if (this.lexer.isCurrentTokenType(TOKEN_TYPE_INTEGER_CONST)) {
+            return new NumNode(this.eat(TOKEN_TYPE_INTEGER_CONST));
+        }
+        if (this.lexer.isCurrentTokenType(TOKEN_TYPE_REAL_CONST)) {
+            return new NumNode(this.eat(TOKEN_TYPE_REAL_CONST));
         }
         if (this.lexer.isCurrentTokenType(TOKEN_TYPE_LPAR)) {
             let node = null;
@@ -74,13 +86,18 @@ export class Parser {
 
         const isM = () => this.lexer.isCurrentTokenType(TOKEN_TYPE_MUL);
         const isD = () => this.lexer.isCurrentTokenType(TOKEN_TYPE_DIV);
-        while (isM() || isD()) {
+        const isFD = () => this.lexer.isCurrentTokenType(TOKEN_TYPE_FLOAT_DIV);
+        while (isM() || isD() || isFD()) {
             if (isM()) {
                 node = new BinOpNode(node, this.eat(TOKEN_TYPE_MUL), this.powTerm());
                 continue;
             }
             if (isD()) {
                 node = new BinOpNode(node, this.eat(TOKEN_TYPE_DIV), this.powTerm());
+                continue;
+            }
+            if (isFD()) {
+                node = new BinOpNode(node, this.eat(TOKEN_TYPE_FLOAT_DIV), this.powTerm());
                 continue;
             }
             this._error();
@@ -154,8 +171,49 @@ export class Parser {
         return new CompoundNode(statements);
     }
 
+    variableDeclaration() {
+        const vars = [];
+        vars.push(this.variable());
+
+        while (this.lexer.isCurrentTokenType(TOKEN_TYPE_COMMA)) {
+            this.eat(TOKEN_TYPE_COMMA);
+            vars.push(this.variable());
+        }
+        let varType = null;
+        this.eat(TOKEN_TYPE_COLON);
+        if (this.lexer.isCurrentTokenType(TOKEN_TYPE_REAL)) {
+            varType = this.eat(TOKEN_TYPE_REAL);
+        } else if (this.lexer.isCurrentTokenType(TOKEN_TYPE_INTEGER)) {
+            varType = this.eat(TOKEN_TYPE_INTEGER);
+        }
+
+        this.eat(TOKEN_TYPE_SEMI);
+        return vars.map(variable => new VarDeclarationNode(variable, varType));
+    }
+
+    variableDeclarationList() {
+        const declarations = [];
+        declarations.push(...this.variableDeclaration());
+        while (this.lexer.isCurrentTokenType(TOKEN_TYPE_ID)) {
+            declarations.push(...this.variableDeclaration());
+        }
+        return new VarDeclarationListNode(declarations);
+    }
+
+    block() {
+        let varDecl = null;
+        if (this.lexer.isCurrentTokenType(TOKEN_TYPE_VAR)) {
+            this.eat(TOKEN_TYPE_VAR);
+            varDecl = this.variableDeclarationList();
+        }
+        return new BlockNode(varDecl, this.compoundStatement());
+    }
+
     program() {
-        const res = this.compoundStatement();
+        this.eat(TOKEN_TYPE_PROGRAM);
+        this.variable();
+        this.eat(TOKEN_TYPE_SEMI);
+        const res = this.block();
         this.eat(TOKEN_TYPE_DOT);
         return res;
     }

@@ -2,7 +2,6 @@ import {isWhiteSpace, isNumber, isAlpha, isAlphaNum, isTokenType} from './helper
 import {
     Token,
     TOKEN_TYPE_EOF,
-    TOKEN_TYPE_NUMBER,
     TOKEN_TYPE_PLUS,
     TOKEN_TYPE_MINUS,
     TOKEN_TYPE_MUL,
@@ -16,13 +15,29 @@ import {
     TOKEN_TYPE_DOT,
     TOKEN_TYPE_ASSIGN,
     TOKEN_TYPE_ID,
+    TOKEN_TYPE_PROGRAM,
+    TOKEN_TYPE_VAR,
+    TOKEN_TYPE_INTEGER,
+    TOKEN_TYPE_REAL,
+    TOKEN_TYPE_COMMA,
+    TOKEN_TYPE_COLON,
+    TOKEN_TYPE_INTEGER_CONST,
+    TOKEN_TYPE_REAL_CONST,
+    TOKEN_TYPE_FLOAT_DIV,
 } from './token.js';
 
+const COMMENT_START_CHAR = '{';
+const COMMENT_END_CHAR = '}';
+const FLOAT_SEPARATOR = '.';
 
 const RESERVED_KEYWORDS = {
     'BEGIN': new Token(TOKEN_TYPE_BEGIN, 'BEGIN'),
     'END': new Token(TOKEN_TYPE_END, 'END'),
-    'DIV': new Token(TOKEN_TYPE_DIV, '/'),
+    'DIV': new Token(TOKEN_TYPE_DIV, 'DIV'),
+    'REAL': new Token(TOKEN_TYPE_REAL, 'REAL'),
+    'INTEGER': new Token(TOKEN_TYPE_INTEGER, 'INTEGER'),
+    'VAR': new Token(TOKEN_TYPE_VAR, 'VAR'),
+    'PROGRAM': new Token(TOKEN_TYPE_PROGRAM, 'PROGRAM'),
 }
 
 export class Lexer {
@@ -70,7 +85,18 @@ export class Lexer {
         }
     }
 
-    number() {
+    skipComment() {
+        if (this.currentChar !== COMMENT_START_CHAR) {
+            return;
+        }
+        while (this.currentChar !== COMMENT_END_CHAR) {
+            this.advance();
+        }
+        // one more, to point to the next valid character.
+        this.advance();
+    }
+
+    _number() {
         const isCurrentCharNumber = () => isNumber(this.currentChar);
         if (!isCurrentCharNumber()) {
             return null;
@@ -80,12 +106,26 @@ export class Lexer {
             number += this.currentChar;
             this.advance();
         }
+        let tokenType = TOKEN_TYPE_INTEGER_CONST;
+        if (this.currentChar === FLOAT_SEPARATOR) {
+            tokenType = TOKEN_TYPE_REAL_CONST;
+            number += '.';
+            this.advance(); 
+            while (isCurrentCharNumber()) {
+                number += this.currentChar;
+                this.advance();
+            }
+        }
         this.unadvance();
-        return Number.parseInt(number);
+        return new Token(tokenType, Number.parseFloat(number));
     }
 
     _getToken() {
-        this.skipWhiteSpace();
+        this.skipComment();
+        while (isWhiteSpace(this.currentChar)) {
+            this.skipWhiteSpace();
+            this.skipComment();
+        }
 
         if (this.currentChar === null) {
             return new Token(TOKEN_TYPE_EOF, null);
@@ -98,6 +138,9 @@ export class Lexer {
         }
         if (this.currentChar === '*') {
             return new Token(TOKEN_TYPE_MUL, '*');
+        }
+        if (this.currentChar === '/') {
+            return new Token(TOKEN_TYPE_FLOAT_DIV, '/');
         }
         if (this.currentChar === '(') {
             return new Token(TOKEN_TYPE_LPAR, '(');
@@ -114,12 +157,18 @@ export class Lexer {
         if (this.currentChar === '.') {
             return new Token(TOKEN_TYPE_DOT, '.');
         }
-        if (isNumber(this.currentChar)) {
-            return new Token(TOKEN_TYPE_NUMBER, this.number());
-        }
         if (this.currentChar === ':' && this.peak() === '=') {
             this.advance();
             return new Token(TOKEN_TYPE_ASSIGN, ':=');
+        }
+        if (this.currentChar === ':') {
+            return new Token(TOKEN_TYPE_COLON, ':');
+        }
+        if (this.currentChar === ',') {
+            return new Token(TOKEN_TYPE_COMMA, ',');
+        }
+        if (isNumber(this.currentChar)) {
+            return this._number();
         }
         if (isAlpha(this.currentChar)) {
             return this._id();

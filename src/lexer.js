@@ -22,6 +22,7 @@ import {
 const RESERVED_KEYWORDS = {
     'BEGIN': new Token(TOKEN_TYPE_BEGIN, 'BEGIN'),
     'END': new Token(TOKEN_TYPE_END, 'END'),
+    'DIV': new Token(TOKEN_TYPE_DIV, '/'),
 }
 
 export class Lexer {
@@ -97,9 +98,6 @@ export class Lexer {
         }
         if (this.currentChar === '*') {
             return new Token(TOKEN_TYPE_MUL, '*');
-        }
-        if (this.currentChar === '/') {
-            return new Token(TOKEN_TYPE_DIV, '/');
         }
         if (this.currentChar === '(') {
             return new Token(TOKEN_TYPE_LPAR, '(');

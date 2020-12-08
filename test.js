@@ -13,7 +13,7 @@ test('Test simple Pascal statements', function () {
 BEGIN
     number := 2;
     a := number;
-    b := 10 * a + 10 * number / 4;
+    b := 10 * a + 10 * number div 4;
     c := a - - b
 END;
 x := 11;
@@ -35,7 +35,7 @@ test('Test simple Pascal statements case insensivity', function () {
     BEGIN
         number := 2;
         a := NumBer;
-        B := 10 * a + 10 * NUMBER / 4;
+        B := 10 * a + 10 * NUMBER DiV 4;
         c := a - - b
     end;
 

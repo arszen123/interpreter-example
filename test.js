@@ -1,56 +1,81 @@
-import { Parser, EvalInterpreter } from './index.js';
-import assert from 'assert';
+import { Lexer, Parser, Interpreter } from './src/index.js';
 
-function assertEqual(expr, expected) {
-    const i = new EvalInterpreter(new Parser(expr));
-    assert.equal(i.eval(), expected);
+function instantiateInterpreter(program) {
+    const lexer = new Lexer(program);
+    const parser = new Parser(lexer);
+    const interpreter = new Interpreter(parser);
+    return interpreter
 }
 
-function assertThrows(expr) {
-    const i = new EvalInterpreter(new Parser(expr));
-    assert.throws(() => {
-        const res = i.eval();
-        console.log(res);
-    }, 'Throws');
-}
 
-const tests = [
-    // base test
-    () => assertEqual('10 + 20', 30),
-    () => assertEqual('10 * 20', 200),
-    () => assertEqual('100 + 8 * 10 - 100', 80),
-    () => assertEqual('100 + 8 * 10 /8 - 100', 10),
-    () => assertEqual('   100 - 28', 72),
-    () => assertEqual('10+(3*(20+2+8))', 100),
-    () => assertEqual('10+20', 30),
-    () => assertEqual('20-10', 10),
-    () => assertEqual('10', 10),
-    () => assertEqual('(((10)))', 10),
-    () => assertEqual('-10', -10),
-    () => assertEqual('20 - - + - 10', 10),
-    // throw test
-    () => assertThrows('10 +'),
-    () => assertThrows('10 + (())'),
-    () => assertThrows('10 + (('),
-    () => assertThrows('10 + (20*(20+2)'),
-    // pow test
-    () => assertEqual('10 ^ 2', 100),
-    () => assertEqual('10 ^ 2 ^ 3', 100000000),
-    () => assertEqual('10 ^ 2 + 3', 103),
-    () => assertEqual('10 ^ (2 + 3)', 100000),
-    // pow with unary test
-    () => assertEqual(' - - + - 10  ^ 3', -1000),
-    () => assertEqual('(- - + - 10) ^ 3', -1000),
-    () => assertEqual('(- - + - 10) ^  - - + - -3 ', -1000),
-    () => assertEqual('(- - + - 10) ^ (- - + - -3)', -1000),
-    () => assertEqual('(- - + - 10) ^ - 2', 0.01),
-];
+test('Test simple Pascal statements', function () {
+    const program = `BEGIN
+BEGIN
+    number := 2;
+    a := number;
+    b := 10 * a + 10 * number / 4;
+    c := a - - b
+END;
+x := 11;
+END.`;
+    const interpreter = instantiateInterpreter(program);
+    interpreter.eval();
+    expect(interpreter.getGlobalNamespace()).toStrictEqual({
+        NUMBER: 2,
+        A: 2,
+        B: 25,
+        C: 27,
+        X: 11,
+    });
+});
 
-for (const i in tests) {
-    const test = tests[i];
-    try {
-        test();
-    } catch (e) {
-        console.error(i + e);
-    }
-}
+test('Test simple Pascal statements case insensivity', function () {
+    const program = `BEGIN
+
+    BEGIN
+        number := 2;
+        a := NumBer;
+        B := 10 * a + 10 * NUMBER / 4;
+        c := a - - b
+    end;
+
+    x := 11;
+END.`;
+    const interpreter = instantiateInterpreter(program);
+    interpreter.eval();
+    expect(interpreter.getGlobalNamespace()).toStrictEqual({
+        NUMBER: 2,
+        A: 2,
+        B: 25,
+        C: 27,
+        X: 11,
+    })
+})
+
+test('Test variable starts with \'_\'', function () {
+    const program = `BEGIN
+
+    BEGIN
+        _number := 2;
+        a := _number;
+    end;
+END.`;
+    const interpreter = instantiateInterpreter(program);
+    interpreter.eval();
+    expect(interpreter.getGlobalNamespace()).toStrictEqual({
+        _NUMBER: 2,
+        A: 2,
+    })
+});
+
+
+test('Test unterminated scope', function () {
+    const program = `BEGIN BEGIN END.`;
+    const interpreter = instantiateInterpreter(program);
+    expect(() => interpreter.eval()).toThrow();
+});
+test('Test empty program', function () {
+    const program = `BEGIN END.`;
+    const interpreter = instantiateInterpreter(program);
+    expect(() => interpreter.eval()).not.toThrow();
+});

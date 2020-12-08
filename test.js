@@ -1,61 +1,49 @@
+import { Parser, EvalInterpreter } from './index.js';
 import assert from 'assert';
-import { Parser, EvalInterpreter, RPNInterpreter, LISPInterpreter } from './src/interpreter2.js';
 
-function testEval(expr, expected) {
+function assertEqual(expr, expected) {
     const i = new EvalInterpreter(new Parser(expr));
-    assert.equal(i.eval(), expected, `${expr} = ${expected}`);
+    assert.equal(i.eval(), expected);
 }
 
-function testThrows(expr) {
+function assertThrows(expr) {
     const i = new EvalInterpreter(new Parser(expr));
-    assert.throws(() => i.eval(), 'Invalid expression: ' + expr);
+    assert.throws(() => {
+        const res = i.eval();
+        console.log(res);
+    }, 'Throws');
 }
 
 const tests = [
-    function () {
-        testEval('1+7', 8);
-    },
-    function () {
-        testEval('113+7', 120);
-    },
-    function () {
-        testEval('1 + 2', 3);
-    },
-    function () {
-        testEval('2 - 1', 1);
-    },
-    function () {
-        const expr = '120 - 10 + 20 - 3 - 7 - 2'
-        testEval(expr, eval(expr));
-    },
-    function () {
-        testEval('120', 120);
-    },
-    function () {
-        testThrows('120 + ');
-    },
-    function () {
-        testEval('120 ++ 100', 220);
-    },
-    function () {
-        testEval('120 + + 100', 220);
-    },
-    function () {
-        testEval('120 + 10 * 8 - 100 ', 100);
-    },
-    function () {
-        testEval('120 + 10 * 8 / 10 - 100 ', 28);
-    },
-    () => testEval('10 *(10 - 2 + 3 + 2 -1)', 120),
-    () => testEval('((10))', 10),
-    () => testEval('(5 + 3) * 12 / 3', 32),
-    () => testEval('(2 + 3 * 5)', 17),
-    () => testEval('- - - + - 3', 3),
-    () => testEval('---+-3', 3),
-    () => testEval('- - + - 3', -3),
-    function () {
-        testThrows('120 + (100 + ( 20)')
-    },
+    // base test
+    () => assertEqual('10 + 20', 30),
+    () => assertEqual('10 * 20', 200),
+    () => assertEqual('100 + 8 * 10 - 100', 80),
+    () => assertEqual('100 + 8 * 10 /8 - 100', 10),
+    () => assertEqual('   100 - 28', 72),
+    () => assertEqual('10+(3*(20+2+8))', 100),
+    () => assertEqual('10+20', 30),
+    () => assertEqual('20-10', 10),
+    () => assertEqual('10', 10),
+    () => assertEqual('(((10)))', 10),
+    () => assertEqual('-10', -10),
+    () => assertEqual('20 - - + - 10', 10),
+    // throw test
+    () => assertThrows('10 +'),
+    () => assertThrows('10 + (())'),
+    () => assertThrows('10 + (('),
+    () => assertThrows('10 + (20*(20+2)'),
+    // pow test
+    () => assertEqual('10 ^ 2', 100),
+    () => assertEqual('10 ^ 2 ^ 3', 100000000),
+    () => assertEqual('10 ^ 2 + 3', 103),
+    () => assertEqual('10 ^ (2 + 3)', 100000),
+    // pow with unary test
+    () => assertEqual(' - - + - 10  ^ 3', -1000),
+    () => assertEqual('(- - + - 10) ^ 3', -1000),
+    () => assertEqual('(- - + - 10) ^  - - + - -3 ', -1000),
+    () => assertEqual('(- - + - 10) ^ (- - + - -3)', -1000),
+    () => assertEqual('(- - + - 10) ^ - 2', 0.01),
 ];
 
 for (const i in tests) {
@@ -63,6 +51,6 @@ for (const i in tests) {
     try {
         test();
     } catch (e) {
-        console.error(e);
+        console.error(i + e);
     }
 }

@@ -1,4 +1,4 @@
-import { Lexer, Parser, Interpreter } from './src/index.js';
+import { Lexer, Parser, Interpreter } from '../src/index.js';
 
 function instantiateInterpreter(program) {
     const lexer = new Lexer(program);

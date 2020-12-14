@@ -9,23 +9,7 @@ import {
     TOKEN_TYPE_FLOAT_DIV,
     TOKEN_TYPE_POW,
 } from './token.js';
-
-class NodeVisitor {
-    /**
-     * @param {ASTNode} node 
-     */
-    visit(node) {
-        const nodeName = (node.constructor || {}).name;
-        const fnName = `visit${nodeName}`
-        if (typeof this[fnName] !== 'function') {
-            return this.defaultVisitor(node);
-        }
-        return this[fnName](node);
-    }
-    defaultVisitor(node) {
-        throw new Error(`Undefined node visitor for ${node.constructor.name}!`);
-    }
-}
+import { NodeVisitor } from './node-visitor.js'
 
 export class Interpreter extends NodeVisitor {
     /**

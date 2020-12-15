@@ -1,6 +1,6 @@
 import { NodeVisitor } from './node-visitor.js'
 import { ScopedSymbolTable, BuiltInSymbol, VarSymbol, ProcedureSymbol } from './symbol.js';
-import { VarDeclarationNode, VarNode, AssignNode, ProgramNode, ProcedureDeclarationNode } from './node.js';
+import { BinOpNode, UnaryOpNode, AssignNode, VarNode, CompoundNode, BlockNode, ProcedureDeclarationNode, VarDeclarationNode, ProgramNode } from './node.js';
 import { Parser } from './parser.js';
 
 /**
@@ -34,6 +34,10 @@ export class SemanticAlanyzer extends NodeVisitor {
         this._currentScope = this._currentScope.getParent();
     }
 
+    /**
+     * 
+     * @param {BlockNode} node 
+     */
     visitBlockNode(node) {
         if (node.declarationList !== null) {
             for (const declNode of node.declarationList) {
@@ -46,6 +50,20 @@ export class SemanticAlanyzer extends NodeVisitor {
             }
         }
         this.visit(node.compoundNode);
+    }
+
+    /**
+     * 
+     * @param {VarDeclarationNode} node 
+     */
+    visitVarDeclarationNode(node) {
+        const name = node.variable.name;
+        if (this._currentScope.lookup(name, true) !== null) {
+            this._errorVariableAlreadyDefined(name);
+        }
+        const varTypeName = node.type.type;
+        const symbolType = this._currentScope.lookup(varTypeName);
+        this._currentScope.define(new VarSymbol(name, symbolType));
     }
 
     /**
@@ -74,24 +92,14 @@ export class SemanticAlanyzer extends NodeVisitor {
         this._currentScope = this._currentScope.getParent();
     }
 
+    /**
+     * 
+     * @param {CompoundNode} node 
+     */
     visitCompoundNode(node) {
         for (node of node.nodes) {
             this.visit(node);
         }
-    }
-
-    /**
-     * 
-     * @param {VarDeclarationNode} node 
-     */
-    visitVarDeclarationNode(node) {
-        const name = node.variable.name;
-        if (this._currentScope.lookup(name, true) !== null) {
-            this._errorVariableAlreadyDefined(name);
-        }
-        const varTypeName = node.type.type;
-        const symbolType = this._currentScope.lookup(varTypeName);
-        this._currentScope.define(new VarSymbol(name, symbolType));
     }
     
     /**
@@ -118,15 +126,25 @@ export class SemanticAlanyzer extends NodeVisitor {
         this.visit(node.right);
     }
 
+    /**
+     * 
+     * @param {BinOpNode} node 
+     */
     visitBinOpNode(node) {
         this.visit(node.left);
         this.visit(node.right);
     }
+    /**
+     * 
+     * @param {UnaryOpNode} node 
+     */
     visitUnaryOpNode(node) {
         this.visit(node.right);
     }
+
     visitEmptyNode(node) {
     }
+
     visitNumNode(node) {
     }
 

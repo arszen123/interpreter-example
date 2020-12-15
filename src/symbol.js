@@ -31,6 +31,9 @@ export class ProcedureSymbol extends Symbol {
     }
 }
 
+/**
+ * @param {Symbol{}} _symbols
+ */
 export class ScopedSymbolTable {
     /**
      * 

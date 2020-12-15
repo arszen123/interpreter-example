@@ -1,4 +1,4 @@
-
+import { Token } from './token.js';
 import { finalize } from './helper.js';
 
 export class ASTNode {
@@ -6,6 +6,9 @@ export class ASTNode {
 }
 
 export class NumNode extends ASTNode {
+    /**
+     * @param {Token} token 
+     */
     constructor(token) {
         super();
         this.token = token;
@@ -15,6 +18,11 @@ export class NumNode extends ASTNode {
 }
 
 export class BinOpNode extends ASTNode {
+    /**
+     * @param {Token} left 
+     * @param {Token} op 
+     * @param {Token} right 
+     */
     constructor(left, op, right) {
         super();
         this.left = left;
@@ -25,6 +33,10 @@ export class BinOpNode extends ASTNode {
 }
 
 export class UnaryOpNode extends ASTNode {
+    /**
+     * @param {Token} op 
+     * @param {ASTNode} expr 
+     */
     constructor(op, expr) {
         super();
         this.token = this.op = op;
@@ -39,6 +51,9 @@ export class EmptyNode extends ASTNode {
     }
 }
 export class VarNode extends ASTNode {
+    /**
+     * @param {Token} token 
+     */
     constructor(token) {
         super();
         this.token = token;
@@ -46,7 +61,13 @@ export class VarNode extends ASTNode {
         finalize(this);
     }
 }
+
 export class AssignNode extends ASTNode {
+    /**
+     * @param {Token} left 
+     * @param {Token} op 
+     * @param {Token} right 
+     */
     constructor(left, op, right) {
         super();
         this.left = left;
@@ -55,40 +76,14 @@ export class AssignNode extends ASTNode {
         finalize(this);
     }
 }
+
 export class CompoundNode extends ASTNode {
+    /**
+     * @param {ASTNode} nodes 
+     */
     constructor(nodes) {
         super();
         this.nodes = nodes;
-        finalize(this);
-    }
-}
-
-export class VarDeclarationNode extends ASTNode {
-    /**
-     * 
-     * @param {Token} variable 
-     * @param {Token} type 
-     */
-    constructor(variable, type) {
-        super();
-        this.variable = variable;
-        this.type = type;
-        finalize(this);
-    }
-}
-
-export class BlockNode extends ASTNode {
-    /**
-     * 
-     * @param {VarDeclaration[]} declarationList
-     * @param {ProcedureDeclarationNode[]} procedureDeclarationList
-     * @param {CompoundNode} compoundNode 
-     */
-    constructor(declarationList, procedureDeclarationList, compoundNode) {
-        super();
-        this.declarationList = declarationList;
-        this.procedureDeclarationList = procedureDeclarationList;
-        this.compoundNode = compoundNode;
         finalize(this);
     }
 }
@@ -99,7 +94,6 @@ export class BlockNode extends ASTNode {
  */
 export class ProcedureDeclarationNode extends ASTNode {
     /**
-     * 
      * @param {String} name 
      * @param {VarDeclarationNode[]} params 
      * @param {BlockNode} block 
@@ -113,9 +107,36 @@ export class ProcedureDeclarationNode extends ASTNode {
     }
 }
 
+export class VarDeclarationNode extends ASTNode {
+    /**
+     * @param {Token} variable 
+     * @param {Token} type 
+     */
+    constructor(variable, type) {
+        super();
+        this.variable = variable;
+        this.type = type;
+        finalize(this);
+    }
+}
+
+export class BlockNode extends ASTNode {
+    /**
+     * @param {VarDeclaration[]} declarationList
+     * @param {ProcedureDeclarationNode[]} procedureDeclarationList
+     * @param {CompoundNode} compoundNode 
+     */
+    constructor(declarationList, procedureDeclarationList, compoundNode) {
+        super();
+        this.declarationList = declarationList;
+        this.procedureDeclarationList = procedureDeclarationList;
+        this.compoundNode = compoundNode;
+        finalize(this);
+    }
+}
+
 export class ProgramNode extends ASTNode {
     /**
-     * 
      * @param {String} name 
      * @param {BlockNode} blockNode 
      */
@@ -123,5 +144,6 @@ export class ProgramNode extends ASTNode {
         super();
         this.name = name;
         this.block = blockNode;
+        finalize(this);
     }
 }

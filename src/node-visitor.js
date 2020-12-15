@@ -1,3 +1,4 @@
+import { ASTNode } from './node.js';
 
 export class NodeVisitor {
     /**
@@ -11,6 +12,9 @@ export class NodeVisitor {
         }
         return this[fnName](node);
     }
+    /**
+     * @param {ASTNode} node 
+     */
     defaultVisitor(node) {
         throw new Error(`Undefined node visitor for ${node.constructor.name}!`);
     }

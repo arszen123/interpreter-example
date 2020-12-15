@@ -1,6 +1,7 @@
 import { Lexer } from './lexer.js';
 import { BinOpNode, UnaryOpNode, NumNode, AssignNode, VarNode, CompoundNode, EmptyNode, BlockNode, VarDeclarationNode, ProcedureDeclarationNode, ProgramNode } from './node.js';
 import {
+    Token,
     TOKEN_TYPE_NUMBER,
     TOKEN_TYPE_PLUS,
     TOKEN_TYPE_MINUS,
@@ -49,6 +50,41 @@ export class Parser {
         return res;
     }
 
+    /**
+     * TERMINAL
+     * grammar: ID
+     */
+    variable() {
+        return new VarNode(this.eat(TOKEN_TYPE_ID));
+    }
+
+    /**
+     * TERMINAL
+     * 
+     * grammar: REAL
+     *        | INTEGER
+     */
+    typeSpec() {
+        let varType;
+        if (this.lexer.isCurrentTokenType(TOKEN_TYPE_REAL)) {
+            varType = this.eat(TOKEN_TYPE_REAL);
+        } else if (this.lexer.isCurrentTokenType(TOKEN_TYPE_INTEGER)) {
+            varType = this.eat(TOKEN_TYPE_INTEGER);
+        } else {
+            this._error();
+        }
+        return varType;
+    }
+
+    /**
+     * grammar: PLUS **atom**
+     *        | MINUS **atom**
+     *        | INTEGER_CONST
+     *        | REAL_CONST
+     *        | LPAR **addTerm** RPAR
+     *        | **variable**
+     * 
+     */
     atom() {
         if (this.lexer.isCurrentTokenType(TOKEN_TYPE_PLUS)) {
             return new UnaryOpNode(this.eat(TOKEN_TYPE_PLUS), this.atom());
@@ -77,6 +113,9 @@ export class Parser {
         this._error();
     }
 
+    /**
+     * grammar: **atom** (POW **powTerm**)*
+     */
     powTerm() {
         let node = this.atom();
 
@@ -86,6 +125,9 @@ export class Parser {
         return node;
     }
 
+    /**
+     * grammar: **powTerm** ((MUL|DIV|FLOAT_DIV) **powTerm**)*
+     */
     mulTerm() {
         let node = this.powTerm();
 
@@ -110,6 +152,9 @@ export class Parser {
         return node;
     }
 
+    /**
+     * grammar: **mulTerm** ((MINUS|PLUS) **mulTerm**)*
+     */
     addTerm() {
         let node = this.mulTerm();
 
@@ -129,14 +174,16 @@ export class Parser {
         return node;
     }
 
+    /**
+     * TERMINAL
+     */
     emptyStatement() {
         return new EmptyNode();
     }
 
-    variable() {
-        return new VarNode(this.eat(TOKEN_TYPE_ID));
-    }
-
+    /**
+     * grammar: **variable** ASSIGN **addTerm**
+     */
     assignStatement() {
         return new AssignNode(
             this.variable(),
@@ -145,6 +192,11 @@ export class Parser {
         );
     }
 
+    /**
+     * grammar: **compoundStatement**
+     *        | **assignStatement**
+     *        | **emptyStatement**
+     */
     statement() {
         if (this.lexer.isCurrentTokenType(TOKEN_TYPE_BEGIN)) {
             return this.compoundStatement();
@@ -155,6 +207,9 @@ export class Parser {
         return this.emptyStatement();
     }
 
+    /**
+     * grammar: **statement** (SEMI **statement**)*
+     */
     statementList() {
         const statements = [];
 
@@ -166,6 +221,9 @@ export class Parser {
         return statements;
     }
 
+    /**
+     * grammar: BEGIN **statementList** END
+     */
     compoundStatement() {
         let statements = [];
 
@@ -176,47 +234,10 @@ export class Parser {
         return new CompoundNode(statements);
     }
 
-    variableDeclaration() {
-        const vars = [];
-        vars.push(this.variable());
-
-        while (this.lexer.isCurrentTokenType(TOKEN_TYPE_COMMA)) {
-            this.eat(TOKEN_TYPE_COMMA);
-            vars.push(this.variable());
-        }
-        let varType = null;
-        this.eat(TOKEN_TYPE_COLON);
-        varType = this.typeSpec();
-        this.eat(TOKEN_TYPE_SEMI);
-        return vars.map(variable => new VarDeclarationNode(variable, varType));
-    }
-
-    typeSpec() {
-        let varType;
-        if (this.lexer.isCurrentTokenType(TOKEN_TYPE_REAL)) {
-            varType = this.eat(TOKEN_TYPE_REAL);
-        } else if (this.lexer.isCurrentTokenType(TOKEN_TYPE_INTEGER)) {
-            varType = this.eat(TOKEN_TYPE_INTEGER);
-        } else {
-            this._error();
-        }
-        return varType;
-    }
-
-    variableDeclarationList() {
-        const declarations = [];
-        this.eat(TOKEN_TYPE_VAR);
-        declarations.push(...this.variableDeclaration());
-        while (this.lexer.isCurrentTokenType(TOKEN_TYPE_ID) || this.lexer.isCurrentTokenType(TOKEN_TYPE_VAR)) {
-            if (this.lexer.isCurrentTokenType(TOKEN_TYPE_VAR)) {
-                this.eat(TOKEN_TYPE_VAR);
-            }
-            declarations.push(...this.variableDeclaration());
-        }
-        return declarations;
-    }
-
-    procedureParameter() {
+    /**
+     * grammar: **variable** (COMMA **variable**)* COLON **typeSpec**
+     */
+    varDecl() {
         const params = [this.variable()];
         while (this.lexer.isCurrentTokenType(TOKEN_TYPE_COMMA)) {
             this.eat(TOKEN_TYPE_COMMA);
@@ -227,16 +248,22 @@ export class Parser {
         return params.map(param => new VarDeclarationNode(param, type));
     }
 
+    /**
+     * grammar: **varDecl** (SEMI **varDecl**)*
+     */
     procedureParameterList() {
         const params = [];
-        params.push(...this.procedureParameter());
+        params.push(...this.varDecl());
         while(this.lexer.isCurrentTokenType(TOKEN_TYPE_SEMI)) {
             this.eat(TOKEN_TYPE_SEMI);
-            params.push(...this.procedureParameter());
+            params.push(...this.varDecl());
         }
         return params;
     }
 
+    /**
+     * grammar: PROCEDURE ID (LPAR **procedureParameterList** RPAR)? SEMI **block** SEMI
+     */
     procedureDeclaration() {
         let params = [];
         this.eat(TOKEN_TYPE_PROCEDURE);
@@ -252,6 +279,9 @@ export class Parser {
         return new ProcedureDeclarationNode(name, params, block);
     }
 
+    /**
+     * grammar: (**procedureDeclaration**)*
+     */
     procedureDeclarationList() {
         const procedureDeclarations = [];
         while (this.lexer.isCurrentTokenType(TOKEN_TYPE_PROCEDURE)) {
@@ -260,6 +290,34 @@ export class Parser {
         return procedureDeclarations;
     }
 
+    /**
+     * grammar: **varDecl** SEMI
+     */
+    variableDeclaration() {
+        const res = this.varDecl();
+        this.eat(TOKEN_TYPE_SEMI);
+        return res;
+    }
+
+    /**
+     * grammar: (VAR (**variableDeclaration**)+)+
+     */
+    variableDeclarationList() {
+        const declarations = [];
+        this.eat(TOKEN_TYPE_VAR);
+        declarations.push(...this.variableDeclaration());
+        while (this.lexer.isCurrentTokenType(TOKEN_TYPE_ID) || this.lexer.isCurrentTokenType(TOKEN_TYPE_VAR)) {
+            if (this.lexer.isCurrentTokenType(TOKEN_TYPE_VAR)) {
+                this.eat(TOKEN_TYPE_VAR);
+            }
+            declarations.push(...this.variableDeclaration());
+        }
+        return declarations;
+    }
+
+    /**
+     * grammar: (**variableDeclarationList**)? (**procedureDeclarationList**)? **compoundStatement**
+     */
     block() {
         let varDecl = null;
         if (this.lexer.isCurrentTokenType(TOKEN_TYPE_VAR)) {
@@ -272,6 +330,9 @@ export class Parser {
         return new BlockNode(varDecl, procDecl, this.compoundStatement());
     }
 
+    /**
+     * grammar: PROGRAM **variable** SEMI **block** DOT
+     */
     program() {
         this.eat(TOKEN_TYPE_PROGRAM);
         const programName = this.variable().name;
@@ -284,6 +345,7 @@ export class Parser {
     parse() {
         return this.program();
     }
+
     _error(tokenType) {
         if (typeof tokenType !== 'undefined') {
             const currentToken = this.lexer.currentToken.type;

@@ -1,6 +1,6 @@
 import { Parser } from './parser.js';
 import { isTokenType } from './helper.js';
-import { ASTNode, BinOpNode, UnaryOpNode, NumNode, AssignNode, VarNode, CompoundNode, EmptyNode, BlockNode, VarDeclarationListNode, ProcedureDeclarationNode } from './node.js';
+import { BinOpNode, UnaryOpNode, NumNode, AssignNode, VarNode, CompoundNode, EmptyNode, BlockNode, ProcedureDeclarationNode, VarDeclarationNode, ProgramNode } from './node.js';
 import {
     TOKEN_TYPE_PLUS,
     TOKEN_TYPE_MINUS,
@@ -22,6 +22,10 @@ export class Interpreter extends NodeVisitor {
         this.globalNamespace = {};
     }
 
+    /**
+     * 
+     * @param {ProgramNode} node 
+     */
     visitProgramNode(node) {
         this.visit(node.block);
     }
@@ -46,22 +50,18 @@ export class Interpreter extends NodeVisitor {
 
     /**
      * 
-     * @param {ProcedureDeclarationNode} node 
+     * @param {VarDeclarationNode} node 
      */
-    visitProcedureDeclarationNode(node) {
-        this.visit(node.block);
-    }
-
     visitVarDeclarationNode(node) {
         // ...
     }
 
     /**
      * 
-     * @param {EmptyNode} node 
+     * @param {ProcedureDeclarationNode} node 
      */
-    visitEmptyNode(node) {
-        // nothing to do.
+    visitProcedureDeclarationNode(node) {
+        this.visit(node.block);
     }
 
     /**
@@ -76,14 +76,10 @@ export class Interpreter extends NodeVisitor {
 
     /**
      * 
-     * @param {VarNode} node 
+     * @param {EmptyNode} node 
      */
-    visitVarNode(node) {
-        const variableName = node.name;
-        if (typeof this.globalNamespace[variableName] === 'undefined') {
-            throw new Error(`Undefined variable: ${variableName}`);
-        }
-        return this.globalNamespace[variableName];
+    visitEmptyNode(node) {
+        // nothing to do.
     }
 
     /**
@@ -94,6 +90,18 @@ export class Interpreter extends NodeVisitor {
         const variableName = node.left.name;
         const variableValue = this.visit(node.right);
         this.globalNamespace[variableName] = variableValue;
+    }
+
+    /**
+     * 
+     * @param {VarNode} node 
+     */
+    visitVarNode(node) {
+        const variableName = node.name;
+        if (typeof this.globalNamespace[variableName] === 'undefined') {
+            throw new Error(`Undefined variable: ${variableName}`);
+        }
+        return this.globalNamespace[variableName];
     }
 
     /**

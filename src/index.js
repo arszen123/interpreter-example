@@ -3,11 +3,11 @@
 import { Lexer } from './lexer.js';
 import { Parser } from './parser.js';
 import { Interpreter } from './interpreter.js';
-import { SymbolTableBuilder } from './symbol-table-builder.js';
+import { SemanticAlanyzer } from './semantic-analyzer.js';
 
 export {
     Lexer,
     Parser,
     Interpreter,
-    SymbolTableBuilder
+    SemanticAlanyzer
 }

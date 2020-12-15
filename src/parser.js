@@ -1,5 +1,5 @@
 import { Lexer } from './lexer.js';
-import { BinOpNode, UnaryOpNode, NumNode, AssignNode, VarNode, CompoundNode, EmptyNode, BlockNode, VarDeclarationListNode, VarDeclarationNode } from './node.js';
+import { BinOpNode, UnaryOpNode, NumNode, AssignNode, VarNode, CompoundNode, EmptyNode, BlockNode, VarDeclarationNode, ProcedureDeclarationNode, ProgramNode } from './node.js';
 import {
     TOKEN_TYPE_NUMBER,
     TOKEN_TYPE_PLUS,
@@ -24,6 +24,7 @@ import {
     TOKEN_TYPE_VAR,
     TOKEN_TYPE_COMMA,
     TOKEN_TYPE_COLON,
+    TOKEN_TYPE_PROCEDURE,
 } from './token.js';
 
 export class Parser {
@@ -35,9 +36,13 @@ export class Parser {
         this.lexer = lexer;
     }
 
+    /**
+     * 
+     * @param {Token} tokenType 
+     */
     eat(tokenType) {
         if (!this.lexer.isCurrentTokenType(tokenType)) {
-            this._error();
+            this._error(tokenType);
         }
         const res = this.lexer.currentToken;
         this.lexer.getNextToken();
@@ -181,47 +186,109 @@ export class Parser {
         }
         let varType = null;
         this.eat(TOKEN_TYPE_COLON);
-        if (this.lexer.isCurrentTokenType(TOKEN_TYPE_REAL)) {
-            varType = this.eat(TOKEN_TYPE_REAL);
-        } else if (this.lexer.isCurrentTokenType(TOKEN_TYPE_INTEGER)) {
-            varType = this.eat(TOKEN_TYPE_INTEGER);
-        }
-
+        varType = this.typeSpec();
         this.eat(TOKEN_TYPE_SEMI);
         return vars.map(variable => new VarDeclarationNode(variable, varType));
     }
 
+    typeSpec() {
+        let varType;
+        if (this.lexer.isCurrentTokenType(TOKEN_TYPE_REAL)) {
+            varType = this.eat(TOKEN_TYPE_REAL);
+        } else if (this.lexer.isCurrentTokenType(TOKEN_TYPE_INTEGER)) {
+            varType = this.eat(TOKEN_TYPE_INTEGER);
+        } else {
+            this._error();
+        }
+        return varType;
+    }
+
     variableDeclarationList() {
         const declarations = [];
+        this.eat(TOKEN_TYPE_VAR);
         declarations.push(...this.variableDeclaration());
-        while (this.lexer.isCurrentTokenType(TOKEN_TYPE_ID)) {
+        while (this.lexer.isCurrentTokenType(TOKEN_TYPE_ID) || this.lexer.isCurrentTokenType(TOKEN_TYPE_VAR)) {
+            if (this.lexer.isCurrentTokenType(TOKEN_TYPE_VAR)) {
+                this.eat(TOKEN_TYPE_VAR);
+            }
             declarations.push(...this.variableDeclaration());
         }
-        return new VarDeclarationListNode(declarations);
+        return declarations;
+    }
+
+    procedureParameter() {
+        const params = [this.variable()];
+        while (this.lexer.isCurrentTokenType(TOKEN_TYPE_COMMA)) {
+            this.eat(TOKEN_TYPE_COMMA);
+            params.push(this.variable());
+        }
+        this.eat(TOKEN_TYPE_COLON);
+        const type = this.typeSpec();
+        return params.map(param => new VarDeclarationNode(param, type));
+    }
+
+    procedureParameterList() {
+        const params = [];
+        params.push(...this.procedureParameter());
+        while(this.lexer.isCurrentTokenType(TOKEN_TYPE_SEMI)) {
+            this.eat(TOKEN_TYPE_SEMI);
+            params.push(...this.procedureParameter());
+        }
+        return params;
+    }
+
+    procedureDeclaration() {
+        let params = [];
+        this.eat(TOKEN_TYPE_PROCEDURE);
+        const name = this.eat(TOKEN_TYPE_ID).value;
+        if (this.lexer.isCurrentTokenType(TOKEN_TYPE_LPAR)) {
+            this.eat(TOKEN_TYPE_LPAR);
+            params = this.procedureParameterList();
+            this.eat(TOKEN_TYPE_RPAR);
+        }
+        this.eat(TOKEN_TYPE_SEMI);
+        const block = this.block();
+        this.eat(TOKEN_TYPE_SEMI);
+        return new ProcedureDeclarationNode(name, params, block);
+    }
+
+    procedureDeclarationList() {
+        const procedureDeclarations = [];
+        while (this.lexer.isCurrentTokenType(TOKEN_TYPE_PROCEDURE)) {
+            procedureDeclarations.push(this.procedureDeclaration());
+        }
+        return procedureDeclarations;
     }
 
     block() {
         let varDecl = null;
         if (this.lexer.isCurrentTokenType(TOKEN_TYPE_VAR)) {
-            this.eat(TOKEN_TYPE_VAR);
             varDecl = this.variableDeclarationList();
         }
-        return new BlockNode(varDecl, this.compoundStatement());
+        let procDecl = null;
+        if (this.lexer.isCurrentTokenType(TOKEN_TYPE_PROCEDURE)) {
+            procDecl = this.procedureDeclarationList();
+        }
+        return new BlockNode(varDecl, procDecl, this.compoundStatement());
     }
 
     program() {
         this.eat(TOKEN_TYPE_PROGRAM);
-        this.variable();
+        const programName = this.variable().name;
         this.eat(TOKEN_TYPE_SEMI);
         const res = this.block();
         this.eat(TOKEN_TYPE_DOT);
-        return res;
+        return new ProgramNode(programName, res);
     }
 
     parse() {
         return this.program();
     }
-    _error() {
+    _error(tokenType) {
+        if (typeof tokenType !== 'undefined') {
+            const currentToken = this.lexer.currentToken.type;
+            throw new Error(`Syntax error, "${tokenType}" token is expected, got "${currentToken}"!`)
+        }
         throw new Error('Syntax error!');
     }
 }

@@ -77,28 +77,51 @@ export class VarDeclarationNode extends ASTNode {
     }
 }
 
-export class VarDeclarationListNode extends ASTNode {
+export class BlockNode extends ASTNode {
     /**
      * 
-     * @param {VarDeclarationNode[]} nodes 
+     * @param {VarDeclaration[]} declarationList
+     * @param {ProcedureDeclarationNode[]} procedureDeclarationList
+     * @param {CompoundNode} compoundNode 
      */
-    constructor(nodes) {
+    constructor(declarationList, procedureDeclarationList, compoundNode) {
         super();
-        this.nodes = nodes;
+        this.declarationList = declarationList;
+        this.procedureDeclarationList = procedureDeclarationList;
+        this.compoundNode = compoundNode;
         finalize(this);
     }
 }
 
-export class BlockNode extends ASTNode {
+/**
+ * 
+ * @param {VarDeclarationNode[]} params 
+ */
+export class ProcedureDeclarationNode extends ASTNode {
     /**
      * 
-     * @param {VarDeclarationListNode} declarationListNode 
-     * @param {CompoundNode} compoundNode 
+     * @param {String} name 
+     * @param {VarDeclarationNode[]} params 
+     * @param {BlockNode} block 
      */
-    constructor(declarationListNode, compoundNode) {
+    constructor(name, params, block) {
         super();
-        this.declarationListNode = declarationListNode;
-        this.compoundNode = compoundNode;
+        this.name = name;
+        this.params = params;
+        this.block = block;
         finalize(this);
+    }
+}
+
+export class ProgramNode extends ASTNode {
+    /**
+     * 
+     * @param {String} name 
+     * @param {BlockNode} blockNode 
+     */
+    constructor(name, blockNode) {
+        super();
+        this.name = name;
+        this.block = blockNode;
     }
 }

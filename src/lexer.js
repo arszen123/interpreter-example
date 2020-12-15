@@ -24,6 +24,7 @@ import {
     TOKEN_TYPE_INTEGER_CONST,
     TOKEN_TYPE_REAL_CONST,
     TOKEN_TYPE_FLOAT_DIV,
+    TOKEN_TYPE_PROCEDURE,
 } from './token.js';
 
 const COMMENT_START_CHAR = '{';
@@ -38,6 +39,7 @@ const RESERVED_KEYWORDS = {
     'INTEGER': new Token(TOKEN_TYPE_INTEGER, 'INTEGER'),
     'VAR': new Token(TOKEN_TYPE_VAR, 'VAR'),
     'PROGRAM': new Token(TOKEN_TYPE_PROGRAM, 'PROGRAM'),
+    'PROCEDURE': new Token(TOKEN_TYPE_PROCEDURE, 'PROCEDURE'),
 }
 
 export class Lexer {

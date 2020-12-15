@@ -24,6 +24,7 @@ export const TOKEN_TYPE_INTEGER = 'INTEGER';
 export const TOKEN_TYPE_REAL = 'REAL';
 export const TOKEN_TYPE_COMMA = 'COMMA';
 export const TOKEN_TYPE_COLON = 'COLON';
+export const TOKEN_TYPE_PROCEDURE = 'PROCEDURE';
 
 export class Token {
     constructor(type, value) {

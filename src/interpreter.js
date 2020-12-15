@@ -1,6 +1,6 @@
 import { Parser } from './parser.js';
 import { isTokenType } from './helper.js';
-import { ASTNode, BinOpNode, UnaryOpNode, NumNode, AssignNode, VarNode, CompoundNode, EmptyNode, BlockNode, VarDeclarationListNode } from './node.js';
+import { ASTNode, BinOpNode, UnaryOpNode, NumNode, AssignNode, VarNode, CompoundNode, EmptyNode, BlockNode, VarDeclarationListNode, ProcedureDeclarationNode } from './node.js';
 import {
     TOKEN_TYPE_PLUS,
     TOKEN_TYPE_MINUS,
@@ -22,25 +22,34 @@ export class Interpreter extends NodeVisitor {
         this.globalNamespace = {};
     }
 
+    visitProgramNode(node) {
+        this.visit(node.block);
+    }
+
     /**
      * 
      * @param {BlockNode} node 
      */
     visitBlockNode(node) {
-        if (node.declarationListNode !== null) {
-            this.visit(node.declarationListNode);
+        if (node.declarationList !== null) {
+            for (const declNode of node.declarationList) {
+                this.visit(declNode);
+            }
+        }
+        if (node.procedureDeclarationList !== null) {
+            for (const procDecl of node.procedureDeclarationList) {
+                this.visit(procDecl);
+            }
         }
         this.visit(node.compoundNode);
     }
 
     /**
      * 
-     * @param {VarDeclarationListNode} node 
+     * @param {ProcedureDeclarationNode} node 
      */
-    visitVarDeclarationListNode(node) {
-        for (const declNode of node.nodes) {
-            this.visit(declNode);
-        }
+    visitProcedureDeclarationNode(node) {
+        this.visit(node.block);
     }
 
     visitVarDeclarationNode(node) {

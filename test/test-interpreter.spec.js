@@ -1,4 +1,5 @@
 import { Lexer, Parser, Interpreter } from '../src/index.js';
+import { LexerError, ParserError } from '../src/exception.js';
 
 function instantiateInterpreter(program) {
     const lexer = new Lexer(program);
@@ -84,6 +85,26 @@ test('Test empty program', function () {
     const interpreter = instantiateInterpreter(program);
     expect(() => interpreter.eval()).not.toThrow();
 });
+test('Test lexer error', function () {
+    const program = `program Main;
+
+    begin { Main }
+       >  { lexical error }
+    end.  { Main }`;
+    const interpreter = instantiateInterpreter(program);
+    expect(() => interpreter.eval()).toThrow(LexerError);
+})
+test('Test parser error', function () {
+    const program = `program Main;
+    var
+       a : integer;
+    
+    begin { Main }
+       a := 5 + ;  { syntax error}
+    end.  { Main }`;
+    const interpreter = instantiateInterpreter(program);
+    expect(() => interpreter.eval()).toThrow(ParserError);
+})
 
 test('Test declaration and comments', function () {
     const program = `PROGRAM Part10;

@@ -1,4 +1,5 @@
-import { finalize } from "./helper";
+import { finalize } from "./helper.js";
+import { log as logger } from './logger.js';
 
 class Symbol {
     /**
@@ -46,6 +47,7 @@ export class ScopedSymbolTable {
         this._name = name;
         this._level = level;
         this._parent = parent || null;
+        this.logger = logger;
         finalize(this);
     }
 
@@ -53,6 +55,7 @@ export class ScopedSymbolTable {
      * @param {Symbol} symbol 
      */
     define(symbol) {
+        this.logger.info(`Defnie symbol ${symbol.name} in scope ${this}`);
         this._symbols[symbol.name] = symbol;
     }
 
@@ -62,11 +65,12 @@ export class ScopedSymbolTable {
      * @returns {Symbol}
      */
     lookup(name, onlyCurrentScope) {
+        this.logger.info(`Lookup symbol ${name} in scope ${this}`);
         const symbol = this._symbols[name];
         if (onlyCurrentScope) {
             return symbol || null;
         }
-        return symbol || (this.getParent() || {lookup: (name) => null}).lookup(name);
+        return symbol || (this.getParent() || { lookup: (name) => null }).lookup(name);
     }
 
     getSymbols() {
@@ -87,10 +91,14 @@ export class ScopedSymbolTable {
 
     getAllSymbol() {
         let symbols = this._symbols;
-        return {...(this.getParent() || {getAllSymbol: () => {}}).getAllSymbol(), ...symbols};
+        return { ...(this.getParent() || { getAllSymbol: () => { } }).getAllSymbol(), ...symbols };
     }
 
     createChild(name) {
         return new ScopedSymbolTable(name, this.getLevel() + 1, this);
+    }
+
+    toString() {
+        return `(${this.getName()}, ${this.getLevel()})`
     }
 }

@@ -19,9 +19,9 @@ export class NumNode extends ASTNode {
 
 export class BinOpNode extends ASTNode {
     /**
-     * @param {Token} left 
+     * @param {ASTNode} left 
      * @param {Token} op 
-     * @param {Token} right 
+     * @param {ASTNode} right 
      */
     constructor(left, op, right) {
         super();
@@ -64,9 +64,9 @@ export class VarNode extends ASTNode {
 
 export class AssignNode extends ASTNode {
     /**
-     * @param {Token} left 
+     * @param {VarNode} left 
      * @param {Token} op 
-     * @param {Token} right 
+     * @param {ASTNode} right 
      */
     constructor(left, op, right) {
         super();
@@ -79,7 +79,7 @@ export class AssignNode extends ASTNode {
 
 export class CompoundNode extends ASTNode {
     /**
-     * @param {ASTNode} nodes 
+     * @param {(CompoundNode|AssignNode|EmptyNode)[]} nodes 
      */
     constructor(nodes) {
         super();
@@ -94,7 +94,7 @@ export class CompoundNode extends ASTNode {
  */
 export class ProcedureDeclarationNode extends ASTNode {
     /**
-     * @param {String} name 
+     * @param {Token} name
      * @param {VarDeclarationNode[]} params 
      * @param {BlockNode} block 
      */
@@ -109,7 +109,7 @@ export class ProcedureDeclarationNode extends ASTNode {
 
 export class VarDeclarationNode extends ASTNode {
     /**
-     * @param {Token} variable 
+     * @param {VarNode} variable 
      * @param {Token} type 
      */
     constructor(variable, type) {
@@ -122,7 +122,7 @@ export class VarDeclarationNode extends ASTNode {
 
 export class BlockNode extends ASTNode {
     /**
-     * @param {VarDeclaration[]} declarationList
+     * @param {VarDeclarationNode[]} declarationList
      * @param {ProcedureDeclarationNode[]} procedureDeclarationList
      * @param {CompoundNode} compoundNode 
      */
@@ -137,7 +137,7 @@ export class BlockNode extends ASTNode {
 
 export class ProgramNode extends ASTNode {
     /**
-     * @param {String} name 
+     * @param {Token} name 
      * @param {BlockNode} blockNode 
      */
     constructor(name, blockNode) {

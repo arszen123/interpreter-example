@@ -1,6 +1,7 @@
 import {isWhiteSpace, isNumber, isAlpha, isAlphaNum, isTokenType} from './helper.js';
 import {
     Token,
+    TokenType,
     TOKEN_TYPE_EOF,
     TOKEN_TYPE_PLUS,
     TOKEN_TYPE_MINUS,
@@ -26,10 +27,12 @@ import {
     TOKEN_TYPE_FLOAT_DIV,
     TOKEN_TYPE_PROCEDURE,
 } from './token.js';
+import { LexerError } from './exception.js';
 
 const COMMENT_START_CHAR = '{';
 const COMMENT_END_CHAR = '}';
 const FLOAT_SEPARATOR = '.';
+const NEW_LINE = '\n';
 
 const RESERVED_KEYWORDS = {
     'BEGIN': new Token(TOKEN_TYPE_BEGIN, 'BEGIN'),
@@ -51,6 +54,8 @@ export class Lexer {
         this.text = text;
         this.pos = 0;
         this.currentToken = this._getToken();
+        this.lineno = 1;
+        this.column = 1;
     }
 
     get currentChar() {
@@ -71,6 +76,12 @@ export class Lexer {
 
     advance() {
         if (this.pos < this.text.length) {
+            if (this.currentChar === NEW_LINE) {
+                this.lineno++;
+                this.column = 1;
+            } else {
+                this.column++;
+            }
             this.pos++;
         }
     }
@@ -98,7 +109,7 @@ export class Lexer {
         this.advance();
     }
 
-    _number() {
+    _number(tokenPosition) {
         const isCurrentCharNumber = () => isNumber(this.currentChar);
         if (!isCurrentCharNumber()) {
             return null;
@@ -119,7 +130,7 @@ export class Lexer {
             }
         }
         this.unadvance();
-        return new Token(tokenType, Number.parseFloat(number));
+        return new Token(tokenType, Number.parseFloat(number), tokenPosition);
     }
 
     _getToken() {
@@ -128,52 +139,25 @@ export class Lexer {
             this.skipWhiteSpace();
             this.skipComment();
         }
+        const tokenPosition = {lineno: this.lineno, column: this.column};
+
 
         if (this.currentChar === null) {
-            return new Token(TOKEN_TYPE_EOF, null);
-        }
-        if (this.currentChar === '+') {
-            return new Token(TOKEN_TYPE_PLUS, '+');
-        }
-        if (this.currentChar === '-') {
-            return new Token(TOKEN_TYPE_MINUS, '-');
-        }
-        if (this.currentChar === '*') {
-            return new Token(TOKEN_TYPE_MUL, '*');
-        }
-        if (this.currentChar === '/') {
-            return new Token(TOKEN_TYPE_FLOAT_DIV, '/');
-        }
-        if (this.currentChar === '(') {
-            return new Token(TOKEN_TYPE_LPAR, '(');
-        }
-        if (this.currentChar === ')') {
-            return new Token(TOKEN_TYPE_RPAR, ')');
-        }
-        if (this.currentChar === '^') {
-            return new Token(TOKEN_TYPE_POW, '^');
-        }
-        if (this.currentChar === ';') {
-            return new Token(TOKEN_TYPE_SEMI, ';');
-        }
-        if (this.currentChar === '.') {
-            return new Token(TOKEN_TYPE_DOT, '.');
+            return new Token(TOKEN_TYPE_EOF, null, tokenPosition);
         }
         if (this.currentChar === ':' && this.peak() === '=') {
             this.advance();
-            return new Token(TOKEN_TYPE_ASSIGN, ':=');
+            return new Token(TOKEN_TYPE_ASSIGN, ':=', tokenPosition);
         }
-        if (this.currentChar === ':') {
-            return new Token(TOKEN_TYPE_COLON, ':');
-        }
-        if (this.currentChar === ',') {
-            return new Token(TOKEN_TYPE_COMMA, ',');
+        const tokenType = TokenType.find(this.currentChar);
+        if (tokenType) {
+            return new Token(tokenType, TokenType[tokenType], tokenPosition);
         }
         if (isNumber(this.currentChar)) {
-            return this._number();
+            return this._number(tokenPosition);
         }
         if (isAlpha(this.currentChar)) {
-            return this._id();
+            return this._id(tokenPosition);
         }
         this._error();
     }
@@ -188,7 +172,7 @@ export class Lexer {
         return isTokenType(this.currentToken, type);
     }
 
-    _id() {
+    _id(tokenPosition) {
         let name = '';
         while (isAlphaNum(this.currentChar)) {
             name += this.currentChar;
@@ -200,10 +184,10 @@ export class Lexer {
         if (typeof res === 'undefined') {
             res = RESERVED_KEYWORDS[name] = new Token(TOKEN_TYPE_ID, name);
         }
-        return res;
+        return new Token(res.type, res.value, tokenPosition);
     }
 
     _error() {
-        throw new Error(`Syntax error: Unrecognizeable character "${this.currentChar}" at position ${this.pos}!`);
+        throw new LexerError(`Unrecognizeable character "${this.currentChar}" on line: ${this.lineno} column: ${this.column}!`);
     }
 }

@@ -1,4 +1,5 @@
 import { Lexer, Parser, SemanticAlanyzer } from '../src/index.js';
+import { SemanticError } from '../src/exception.js';
 
 function instantiateSemanticAnalyzer(program) {
     const lexer = new Lexer(program);
@@ -84,3 +85,28 @@ end.  { Main }`;
    const analyzer = instantiateSemanticAnalyzer(program);
    expect(() => analyzer.eval()).not.toThrow();
 });
+
+test('Test duplicate id', function () {
+   const program = `program Main;
+   var
+      a : integer;
+      a : real; { semantic error }
+   
+   begin { Main }
+      a := 5;
+   end.  { Main }`;
+   const analyzer = instantiateSemanticAnalyzer(program);
+   expect(() => analyzer.eval()).toThrow(SemanticError);
+})
+
+test('Test id not found', function () {
+   const program = `program Main;
+   var
+      a : integer;
+   
+   begin { Main }
+      a := b;  { semantic error }
+   end.  { Main }`;
+   const analyzer = instantiateSemanticAnalyzer(program);
+   expect(() => analyzer.eval()).toThrow(SemanticError);
+})

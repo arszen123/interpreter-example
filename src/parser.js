@@ -2,7 +2,6 @@ import { Lexer } from './lexer.js';
 import { BinOpNode, UnaryOpNode, NumNode, AssignNode, VarNode, CompoundNode, EmptyNode, BlockNode, VarDeclarationNode, ProcedureDeclarationNode, ProgramNode } from './node.js';
 import {
     Token,
-    TOKEN_TYPE_NUMBER,
     TOKEN_TYPE_PLUS,
     TOKEN_TYPE_MINUS,
     TOKEN_TYPE_MUL,
@@ -27,6 +26,7 @@ import {
     TOKEN_TYPE_COLON,
     TOKEN_TYPE_PROCEDURE,
 } from './token.js';
+import { ParserError } from './exception.js';
 
 export class Parser {
     /**
@@ -68,10 +68,8 @@ export class Parser {
         let varType;
         if (this.lexer.isCurrentTokenType(TOKEN_TYPE_REAL)) {
             varType = this.eat(TOKEN_TYPE_REAL);
-        } else if (this.lexer.isCurrentTokenType(TOKEN_TYPE_INTEGER)) {
-            varType = this.eat(TOKEN_TYPE_INTEGER);
         } else {
-            this._error();
+            varType = this.eat(TOKEN_TYPE_INTEGER);
         }
         return varType;
     }
@@ -107,10 +105,7 @@ export class Parser {
 
             return node;
         }
-        if (this.lexer.isCurrentTokenType(TOKEN_TYPE_ID)) {
-            return this.variable();
-        }
-        this._error();
+        return this.variable();
     }
 
     /**
@@ -137,17 +132,11 @@ export class Parser {
         while (isM() || isD() || isFD()) {
             if (isM()) {
                 node = new BinOpNode(node, this.eat(TOKEN_TYPE_MUL), this.powTerm());
-                continue;
-            }
-            if (isD()) {
+            } else if (isD()) {
                 node = new BinOpNode(node, this.eat(TOKEN_TYPE_DIV), this.powTerm());
-                continue;
-            }
-            if (isFD()) {
+            } else {
                 node = new BinOpNode(node, this.eat(TOKEN_TYPE_FLOAT_DIV), this.powTerm());
-                continue;
             }
-            this._error();
         }
         return node;
     }
@@ -163,13 +152,9 @@ export class Parser {
         while (isM() || isP()) {
             if (isM()) {
                 node = new BinOpNode(node, this.eat(TOKEN_TYPE_MINUS), this.mulTerm());
-                continue;
-            }
-            if (isP()) {
+            } else {
                 node = new BinOpNode(node, this.eat(TOKEN_TYPE_PLUS), this.mulTerm());
-                continue;
             }
-            this._error();
         }
         return node;
     }
@@ -267,7 +252,7 @@ export class Parser {
     procedureDeclaration() {
         let params = [];
         this.eat(TOKEN_TYPE_PROCEDURE);
-        const name = this.eat(TOKEN_TYPE_ID).value;
+        const name = this.eat(TOKEN_TYPE_ID);
         if (this.lexer.isCurrentTokenType(TOKEN_TYPE_LPAR)) {
             this.eat(TOKEN_TYPE_LPAR);
             params = this.procedureParameterList();
@@ -335,7 +320,7 @@ export class Parser {
      */
     program() {
         this.eat(TOKEN_TYPE_PROGRAM);
-        const programName = this.variable().name;
+        const programName = this.eat(TOKEN_TYPE_ID);
         this.eat(TOKEN_TYPE_SEMI);
         const res = this.block();
         this.eat(TOKEN_TYPE_DOT);
@@ -347,10 +332,7 @@ export class Parser {
     }
 
     _error(tokenType) {
-        if (typeof tokenType !== 'undefined') {
-            const currentToken = this.lexer.currentToken.type;
-            throw new Error(`Syntax error, "${tokenType}" token is expected, got "${currentToken}"!`)
-        }
-        throw new Error('Syntax error!');
+        const currentToken = this.lexer.currentToken;
+        throw new ParserError(`Syntax error: token with type "${tokenType}" is expected, got "${currentToken}"!`)
     }
 }

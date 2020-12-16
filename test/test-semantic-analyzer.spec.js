@@ -4,7 +4,8 @@ import { SemanticError } from '../src/exception.js';
 function instantiateSemanticAnalyzer(program) {
     const lexer = new Lexer(program);
     const parser = new Parser(lexer);
-    return new SemanticAlanyzer(parser);
+    const tree = parser.parse();
+    return new SemanticAlanyzer(tree);
 }
 
 test('Test symbol table builder with undefined variable usage', function () {

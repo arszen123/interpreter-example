@@ -2,30 +2,6 @@ import {isWhiteSpace, isNumber, isAlpha, isAlphaNum, isTokenType} from './helper
 import {
     Token,
     TokenType,
-    TOKEN_TYPE_EOF,
-    TOKEN_TYPE_PLUS,
-    TOKEN_TYPE_MINUS,
-    TOKEN_TYPE_MUL,
-    TOKEN_TYPE_DIV,
-    TOKEN_TYPE_LPAR,
-    TOKEN_TYPE_RPAR,
-    TOKEN_TYPE_POW,
-    TOKEN_TYPE_BEGIN,
-    TOKEN_TYPE_END,
-    TOKEN_TYPE_SEMI,
-    TOKEN_TYPE_DOT,
-    TOKEN_TYPE_ASSIGN,
-    TOKEN_TYPE_ID,
-    TOKEN_TYPE_PROGRAM,
-    TOKEN_TYPE_VAR,
-    TOKEN_TYPE_INTEGER,
-    TOKEN_TYPE_REAL,
-    TOKEN_TYPE_COMMA,
-    TOKEN_TYPE_COLON,
-    TOKEN_TYPE_INTEGER_CONST,
-    TOKEN_TYPE_REAL_CONST,
-    TOKEN_TYPE_FLOAT_DIV,
-    TOKEN_TYPE_PROCEDURE,
 } from './token.js';
 import { LexerError } from './exception.js';
 
@@ -34,16 +10,18 @@ const COMMENT_END_CHAR = '}';
 const FLOAT_SEPARATOR = '.';
 const NEW_LINE = '\n';
 
-const RESERVED_KEYWORDS = {
-    'BEGIN': new Token(TOKEN_TYPE_BEGIN, 'BEGIN'),
-    'END': new Token(TOKEN_TYPE_END, 'END'),
-    'DIV': new Token(TOKEN_TYPE_DIV, 'DIV'),
-    'REAL': new Token(TOKEN_TYPE_REAL, 'REAL'),
-    'INTEGER': new Token(TOKEN_TYPE_INTEGER, 'INTEGER'),
-    'VAR': new Token(TOKEN_TYPE_VAR, 'VAR'),
-    'PROGRAM': new Token(TOKEN_TYPE_PROGRAM, 'PROGRAM'),
-    'PROCEDURE': new Token(TOKEN_TYPE_PROCEDURE, 'PROCEDURE'),
+function createReservedKeywords() {
+    const tokenTypes = TokenType.slice(TokenType.BEGIN, TokenType.END);
+    const res = {};
+    for (const key in tokenTypes) {
+        const tokenType = tokenTypes[key];
+        const val = TokenType.getValue(tokenType);
+        res[val] = new Token(tokenType, val);
+    }
+    return res;
 }
+
+const RESERVED_KEYWORDS = createReservedKeywords();
 
 export class Lexer {
     /**
@@ -86,12 +64,6 @@ export class Lexer {
         }
     }
 
-    unadvance() {
-        if (this.pos > 0) {
-            this.pos--;
-        }
-    }
-
     skipWhiteSpace() {
         while(isWhiteSpace(this.currentChar)) {
             this.advance();
@@ -110,26 +82,26 @@ export class Lexer {
     }
 
     _number(tokenPosition) {
-        const isCurrentCharNumber = () => isNumber(this.currentChar);
-        if (!isCurrentCharNumber()) {
+        if (!isNumber(this.currentChar)) {
             return null;
         }
-        let number = '';
-        while (isCurrentCharNumber()) {
-            number += this.currentChar;
-            this.advance();
-        }
-        let tokenType = TOKEN_TYPE_INTEGER_CONST;
-        if (this.currentChar === FLOAT_SEPARATOR) {
-            tokenType = TOKEN_TYPE_REAL_CONST;
-            number += '.';
-            this.advance(); 
-            while (isCurrentCharNumber()) {
-                number += this.currentChar;
+        const parseNum = () => {
+            let res = '';
+            while (isNumber(this.peak())) {
+                res += this.peak();
                 this.advance();
             }
+            return res;
         }
-        this.unadvance();
+        let tokenType = TokenType.INTEGER_CONST;
+        let number = '' + this.currentChar + parseNum();
+
+        if (this.peak() === FLOAT_SEPARATOR) {
+            tokenType = TokenType.REAL_CONST;
+            this.advance();
+            number += '.' + parseNum();
+        }
+
         return new Token(tokenType, Number.parseFloat(number), tokenPosition);
     }
 
@@ -143,15 +115,15 @@ export class Lexer {
 
 
         if (this.currentChar === null) {
-            return new Token(TOKEN_TYPE_EOF, null, tokenPosition);
+            return new Token(TokenType.EOF, null, tokenPosition);
         }
         if (this.currentChar === ':' && this.peak() === '=') {
             this.advance();
-            return new Token(TOKEN_TYPE_ASSIGN, ':=', tokenPosition);
+            return new Token(TokenType.ASSIGN, ':=', tokenPosition);
         }
-        const tokenType = TokenType.find(this.currentChar);
+        const tokenType = TokenType.findByValue(this.currentChar);
         if (tokenType) {
-            return new Token(tokenType, TokenType[tokenType], tokenPosition);
+            return new Token(tokenType, TokenType.getValue(tokenType), tokenPosition);
         }
         if (isNumber(this.currentChar)) {
             return this._number(tokenPosition);
@@ -173,16 +145,18 @@ export class Lexer {
     }
 
     _id(tokenPosition) {
-        let name = '';
-        while (isAlphaNum(this.currentChar)) {
-            name += this.currentChar;
+        if (!isAlphaNum(this.currentChar)) {
+            return null;
+        }
+        let name = '' + this.currentChar;
+        while (isAlphaNum(this.peak())) {
+            name += this.peak();
             this.advance();
         }
-        this.unadvance();
         name = name.toUpperCase();
         let res = RESERVED_KEYWORDS[name];
         if (typeof res === 'undefined') {
-            res = RESERVED_KEYWORDS[name] = new Token(TOKEN_TYPE_ID, name);
+            res = RESERVED_KEYWORDS[name] = new Token(TokenType.ID, name);
         }
         return new Token(res.type, res.value, tokenPosition);
     }

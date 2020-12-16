@@ -2,13 +2,14 @@ import cli from 'cli';
 import fs from 'fs';
 import { run } from './index.js';
 import {log, silent} from './logger.js';
+
 const options = cli.parse({
     file: ['f', 'A file to process', 'file'],
     scope: [false, 'With scope logging', 'bool'],
 });
 
 if (!options['file'] || !fs.existsSync(options['file'])) {
-    cli.fatal('file not exists');
+    cli.fatal('file not exist');
 }
 fs.readFile(options['file'], (err, data) => {
     const program = data.toString();
@@ -16,5 +17,9 @@ fs.readFile(options['file'], (err, data) => {
     if (!!options['scope'] === false) {
         silent();
     }
-    run(program);
+    try {
+        run(program);
+    } catch(e) {
+        cli.error(e.toString());
+    }
 });

@@ -2,31 +2,9 @@ import { Lexer } from './lexer.js';
 import { BinOpNode, UnaryOpNode, NumNode, AssignNode, VarNode, CompoundNode, EmptyNode, BlockNode, VarDeclarationNode, ProcedureDeclarationNode, ProgramNode } from './node.js';
 import {
     Token,
-    TOKEN_TYPE_PLUS,
-    TOKEN_TYPE_MINUS,
-    TOKEN_TYPE_MUL,
-    TOKEN_TYPE_DIV,
-    TOKEN_TYPE_LPAR,
-    TOKEN_TYPE_RPAR,
-    TOKEN_TYPE_POW,
-    TOKEN_TYPE_BEGIN,
-    TOKEN_TYPE_END,
-    TOKEN_TYPE_SEMI,
-    TOKEN_TYPE_DOT,
-    TOKEN_TYPE_ASSIGN,
-    TOKEN_TYPE_ID,
-    TOKEN_TYPE_INTEGER_CONST,
-    TOKEN_TYPE_REAL_CONST,
-    TOKEN_TYPE_INTEGER,
-    TOKEN_TYPE_REAL,
-    TOKEN_TYPE_FLOAT_DIV,
-    TOKEN_TYPE_PROGRAM,
-    TOKEN_TYPE_VAR,
-    TOKEN_TYPE_COMMA,
-    TOKEN_TYPE_COLON,
-    TOKEN_TYPE_PROCEDURE,
+    TokenType,
 } from './token.js';
-import { ParserError } from './exception.js';
+import { ParserError, ErrorCode } from './exception.js';
 
 export class Parser {
     /**
@@ -55,7 +33,7 @@ export class Parser {
      * grammar: ID
      */
     variable() {
-        return new VarNode(this.eat(TOKEN_TYPE_ID));
+        return new VarNode(this.eat(TokenType.ID));
     }
 
     /**
@@ -66,10 +44,10 @@ export class Parser {
      */
     typeSpec() {
         let varType;
-        if (this.lexer.isCurrentTokenType(TOKEN_TYPE_REAL)) {
-            varType = this.eat(TOKEN_TYPE_REAL);
+        if (this.lexer.isCurrentTokenType(TokenType.REAL)) {
+            varType = this.eat(TokenType.REAL);
         } else {
-            varType = this.eat(TOKEN_TYPE_INTEGER);
+            varType = this.eat(TokenType.INTEGER);
         }
         return varType;
     }
@@ -84,24 +62,24 @@ export class Parser {
      * 
      */
     atom() {
-        if (this.lexer.isCurrentTokenType(TOKEN_TYPE_PLUS)) {
-            return new UnaryOpNode(this.eat(TOKEN_TYPE_PLUS), this.atom());
+        if (this.lexer.isCurrentTokenType(TokenType.PLUS)) {
+            return new UnaryOpNode(this.eat(TokenType.PLUS), this.atom());
         }
-        if (this.lexer.isCurrentTokenType(TOKEN_TYPE_MINUS)) {
-            return new UnaryOpNode(this.eat(TOKEN_TYPE_MINUS), this.atom());
+        if (this.lexer.isCurrentTokenType(TokenType.MINUS)) {
+            return new UnaryOpNode(this.eat(TokenType.MINUS), this.atom());
         }
-        if (this.lexer.isCurrentTokenType(TOKEN_TYPE_INTEGER_CONST)) {
-            return new NumNode(this.eat(TOKEN_TYPE_INTEGER_CONST));
+        if (this.lexer.isCurrentTokenType(TokenType.INTEGER_CONST)) {
+            return new NumNode(this.eat(TokenType.INTEGER_CONST));
         }
-        if (this.lexer.isCurrentTokenType(TOKEN_TYPE_REAL_CONST)) {
-            return new NumNode(this.eat(TOKEN_TYPE_REAL_CONST));
+        if (this.lexer.isCurrentTokenType(TokenType.REAL_CONST)) {
+            return new NumNode(this.eat(TokenType.REAL_CONST));
         }
-        if (this.lexer.isCurrentTokenType(TOKEN_TYPE_LPAR)) {
+        if (this.lexer.isCurrentTokenType(TokenType.LPAR)) {
             let node = null;
 
-            this.eat(TOKEN_TYPE_LPAR);
+            this.eat(TokenType.LPAR);
             node = this.addTerm();
-            this.eat(TOKEN_TYPE_RPAR);
+            this.eat(TokenType.RPAR);
 
             return node;
         }
@@ -114,8 +92,8 @@ export class Parser {
     powTerm() {
         let node = this.atom();
 
-        while (this.lexer.isCurrentTokenType(TOKEN_TYPE_POW)) {
-            node = new BinOpNode(node, this.eat(TOKEN_TYPE_POW), this.powTerm());
+        while (this.lexer.isCurrentTokenType(TokenType.POW)) {
+            node = new BinOpNode(node, this.eat(TokenType.POW), this.powTerm());
         }
         return node;
     }
@@ -126,16 +104,16 @@ export class Parser {
     mulTerm() {
         let node = this.powTerm();
 
-        const isM = () => this.lexer.isCurrentTokenType(TOKEN_TYPE_MUL);
-        const isD = () => this.lexer.isCurrentTokenType(TOKEN_TYPE_DIV);
-        const isFD = () => this.lexer.isCurrentTokenType(TOKEN_TYPE_FLOAT_DIV);
+        const isM = () => this.lexer.isCurrentTokenType(TokenType.MUL);
+        const isD = () => this.lexer.isCurrentTokenType(TokenType.DIV);
+        const isFD = () => this.lexer.isCurrentTokenType(TokenType.FLOAT_DIV);
         while (isM() || isD() || isFD()) {
             if (isM()) {
-                node = new BinOpNode(node, this.eat(TOKEN_TYPE_MUL), this.powTerm());
+                node = new BinOpNode(node, this.eat(TokenType.MUL), this.powTerm());
             } else if (isD()) {
-                node = new BinOpNode(node, this.eat(TOKEN_TYPE_DIV), this.powTerm());
+                node = new BinOpNode(node, this.eat(TokenType.DIV), this.powTerm());
             } else {
-                node = new BinOpNode(node, this.eat(TOKEN_TYPE_FLOAT_DIV), this.powTerm());
+                node = new BinOpNode(node, this.eat(TokenType.FLOAT_DIV), this.powTerm());
             }
         }
         return node;
@@ -147,13 +125,13 @@ export class Parser {
     addTerm() {
         let node = this.mulTerm();
 
-        const isM = () => this.lexer.isCurrentTokenType(TOKEN_TYPE_MINUS);
-        const isP = () => this.lexer.isCurrentTokenType(TOKEN_TYPE_PLUS);
+        const isM = () => this.lexer.isCurrentTokenType(TokenType.MINUS);
+        const isP = () => this.lexer.isCurrentTokenType(TokenType.PLUS);
         while (isM() || isP()) {
             if (isM()) {
-                node = new BinOpNode(node, this.eat(TOKEN_TYPE_MINUS), this.mulTerm());
+                node = new BinOpNode(node, this.eat(TokenType.MINUS), this.mulTerm());
             } else {
-                node = new BinOpNode(node, this.eat(TOKEN_TYPE_PLUS), this.mulTerm());
+                node = new BinOpNode(node, this.eat(TokenType.PLUS), this.mulTerm());
             }
         }
         return node;
@@ -172,7 +150,7 @@ export class Parser {
     assignStatement() {
         return new AssignNode(
             this.variable(),
-            this.eat(TOKEN_TYPE_ASSIGN),
+            this.eat(TokenType.ASSIGN),
             this.addTerm()
         );
     }
@@ -183,10 +161,10 @@ export class Parser {
      *        | **emptyStatement**
      */
     statement() {
-        if (this.lexer.isCurrentTokenType(TOKEN_TYPE_BEGIN)) {
+        if (this.lexer.isCurrentTokenType(TokenType.BEGIN)) {
             return this.compoundStatement();
         }
-        if (this.lexer.isCurrentTokenType(TOKEN_TYPE_ID)) {
+        if (this.lexer.isCurrentTokenType(TokenType.ID)) {
             return this.assignStatement();
         }
         return this.emptyStatement();
@@ -199,8 +177,8 @@ export class Parser {
         const statements = [];
 
         statements.push(this.statement());
-        while (this.lexer.isCurrentTokenType(TOKEN_TYPE_SEMI)) {
-            this.eat(TOKEN_TYPE_SEMI);
+        while (this.lexer.isCurrentTokenType(TokenType.SEMI)) {
+            this.eat(TokenType.SEMI);
             statements.push(this.statement());
         }
         return statements;
@@ -212,9 +190,9 @@ export class Parser {
     compoundStatement() {
         let statements = [];
 
-        this.eat(TOKEN_TYPE_BEGIN);
+        this.eat(TokenType.BEGIN);
         statements = this.statementList();
-        this.eat(TOKEN_TYPE_END);
+        this.eat(TokenType.END);
 
         return new CompoundNode(statements);
     }
@@ -224,11 +202,11 @@ export class Parser {
      */
     varDecl() {
         const params = [this.variable()];
-        while (this.lexer.isCurrentTokenType(TOKEN_TYPE_COMMA)) {
-            this.eat(TOKEN_TYPE_COMMA);
+        while (this.lexer.isCurrentTokenType(TokenType.COMMA)) {
+            this.eat(TokenType.COMMA);
             params.push(this.variable());
         }
-        this.eat(TOKEN_TYPE_COLON);
+        this.eat(TokenType.COLON);
         const type = this.typeSpec();
         return params.map(param => new VarDeclarationNode(param, type));
     }
@@ -239,8 +217,8 @@ export class Parser {
     procedureParameterList() {
         const params = [];
         params.push(...this.varDecl());
-        while(this.lexer.isCurrentTokenType(TOKEN_TYPE_SEMI)) {
-            this.eat(TOKEN_TYPE_SEMI);
+        while(this.lexer.isCurrentTokenType(TokenType.SEMI)) {
+            this.eat(TokenType.SEMI);
             params.push(...this.varDecl());
         }
         return params;
@@ -251,16 +229,16 @@ export class Parser {
      */
     procedureDeclaration() {
         let params = [];
-        this.eat(TOKEN_TYPE_PROCEDURE);
-        const name = this.eat(TOKEN_TYPE_ID);
-        if (this.lexer.isCurrentTokenType(TOKEN_TYPE_LPAR)) {
-            this.eat(TOKEN_TYPE_LPAR);
+        this.eat(TokenType.PROCEDURE);
+        const name = this.eat(TokenType.ID);
+        if (this.lexer.isCurrentTokenType(TokenType.LPAR)) {
+            this.eat(TokenType.LPAR);
             params = this.procedureParameterList();
-            this.eat(TOKEN_TYPE_RPAR);
+            this.eat(TokenType.RPAR);
         }
-        this.eat(TOKEN_TYPE_SEMI);
+        this.eat(TokenType.SEMI);
         const block = this.block();
-        this.eat(TOKEN_TYPE_SEMI);
+        this.eat(TokenType.SEMI);
         return new ProcedureDeclarationNode(name, params, block);
     }
 
@@ -269,7 +247,7 @@ export class Parser {
      */
     procedureDeclarationList() {
         const procedureDeclarations = [];
-        while (this.lexer.isCurrentTokenType(TOKEN_TYPE_PROCEDURE)) {
+        while (this.lexer.isCurrentTokenType(TokenType.PROCEDURE)) {
             procedureDeclarations.push(this.procedureDeclaration());
         }
         return procedureDeclarations;
@@ -280,7 +258,7 @@ export class Parser {
      */
     variableDeclaration() {
         const res = this.varDecl();
-        this.eat(TOKEN_TYPE_SEMI);
+        this.eat(TokenType.SEMI);
         return res;
     }
 
@@ -289,11 +267,11 @@ export class Parser {
      */
     variableDeclarationList() {
         const declarations = [];
-        this.eat(TOKEN_TYPE_VAR);
+        this.eat(TokenType.VAR);
         declarations.push(...this.variableDeclaration());
-        while (this.lexer.isCurrentTokenType(TOKEN_TYPE_ID) || this.lexer.isCurrentTokenType(TOKEN_TYPE_VAR)) {
-            if (this.lexer.isCurrentTokenType(TOKEN_TYPE_VAR)) {
-                this.eat(TOKEN_TYPE_VAR);
+        while (this.lexer.isCurrentTokenType(TokenType.ID) || this.lexer.isCurrentTokenType(TokenType.VAR)) {
+            if (this.lexer.isCurrentTokenType(TokenType.VAR)) {
+                this.eat(TokenType.VAR);
             }
             declarations.push(...this.variableDeclaration());
         }
@@ -305,11 +283,11 @@ export class Parser {
      */
     block() {
         let varDecl = null;
-        if (this.lexer.isCurrentTokenType(TOKEN_TYPE_VAR)) {
+        if (this.lexer.isCurrentTokenType(TokenType.VAR)) {
             varDecl = this.variableDeclarationList();
         }
         let procDecl = null;
-        if (this.lexer.isCurrentTokenType(TOKEN_TYPE_PROCEDURE)) {
+        if (this.lexer.isCurrentTokenType(TokenType.PROCEDURE)) {
             procDecl = this.procedureDeclarationList();
         }
         return new BlockNode(varDecl, procDecl, this.compoundStatement());
@@ -319,11 +297,11 @@ export class Parser {
      * grammar: PROGRAM **variable** SEMI **block** DOT
      */
     program() {
-        this.eat(TOKEN_TYPE_PROGRAM);
-        const programName = this.eat(TOKEN_TYPE_ID);
-        this.eat(TOKEN_TYPE_SEMI);
+        this.eat(TokenType.PROGRAM);
+        const programName = this.eat(TokenType.ID);
+        this.eat(TokenType.SEMI);
         const res = this.block();
-        this.eat(TOKEN_TYPE_DOT);
+        this.eat(TokenType.DOT);
         return new ProgramNode(programName, res);
     }
 
@@ -333,6 +311,10 @@ export class Parser {
 
     _error(tokenType) {
         const currentToken = this.lexer.currentToken;
-        throw new ParserError(`Syntax error: token with type "${tokenType}" is expected, got "${currentToken}"!`)
+        throw new ParserError(
+            `Syntax error: token with type "${tokenType}" is expected, got "${currentToken}"!`,
+            ErrorCode.UNEXPECTED_TOKEN,
+            currentToken,
+        )
     }
 }

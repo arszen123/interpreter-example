@@ -1,22 +1,22 @@
 import { NodeVisitor } from './node-visitor.js'
 import { ScopedSymbolTable, BuiltInSymbol, VarSymbol, ProcedureSymbol } from './symbol.js';
-import { BinOpNode, UnaryOpNode, AssignNode, VarNode, CompoundNode, BlockNode, ProcedureDeclarationNode, VarDeclarationNode, ProgramNode } from './node.js';
-import { Parser } from './parser.js';
-import { SemanticError } from './exception.js';
+import { BinOpNode, UnaryOpNode, AssignNode, VarNode, CompoundNode, BlockNode, ProcedureDeclarationNode, VarDeclarationNode, ProgramNode, ASTNode } from './node.js';
+import { SemanticError, ErrorCode } from './exception.js';
 import { Token } from './token.js';
+import {log} from './logger.js';
 
 /**
  * @param {ScopedSymbolTable} _currentScope
- * @param {Parser} parser
+ * @param {ASTNode} tree
  */
 export class SemanticAlanyzer extends NodeVisitor {
     /**
      * 
-     * @param {Parser} parser 
+     * @param {ASTNode} tree 
      */
-    constructor(parser) {
+    constructor(tree) {
         super();
-        this.parser = parser;
+        this.tree = tree;
         this._currentScope = new ScopedSymbolTable('global', 0, null);
         this._defineBuiltInTypes();
     }
@@ -32,7 +32,11 @@ export class SemanticAlanyzer extends NodeVisitor {
      */
     visitProgramNode(node) {
         this._currentScope = this._currentScope.createChild(node.name.value);
+        log.info(`Entering scope "${this._currentScope.getName()}"`);
+        
         this.visit(node.block);
+
+        log.info(`Leaving scope "${this._currentScope.getName()}"`);
         this._currentScope = this._currentScope.getParent();
     }
 
@@ -78,6 +82,7 @@ export class SemanticAlanyzer extends NodeVisitor {
         this._currentScope.define(procSymbol);
 
         this._currentScope = this._currentScope.createChild(procName);
+        log.info(`Entering scope "${this._currentScope.getName()}"`);
 
         for(const paramNode of node.params) {
             const name = paramNode.variable.name;
@@ -91,6 +96,7 @@ export class SemanticAlanyzer extends NodeVisitor {
 
         this.visit(node.block);
 
+        log.info(`Leaving scope "${this._currentScope.getName()}"`);
         this._currentScope = this._currentScope.getParent();
     }
 
@@ -151,8 +157,7 @@ export class SemanticAlanyzer extends NodeVisitor {
     }
 
     eval() {
-        const tree = this.parser.parse();
-        this.visit(tree);
+        this.visit(this.tree);
         return this.getCurrentScope();
     }
 
@@ -165,7 +170,7 @@ export class SemanticAlanyzer extends NodeVisitor {
      * @param {Token} token 
      */
     _errorUndefinedVariable(token) {
-        throw new SemanticError(`Variable "${token.value}" is not defined!`, null, token);
+        this._error(`Variable "${token.value}" is not defined!`, ErrorCode.ID_NOT_FOUND, token);
     }
 
     /**
@@ -173,6 +178,10 @@ export class SemanticAlanyzer extends NodeVisitor {
      * @param {*Token} name 
      */
     _errorVariableAlreadyDefined(token) {
-        throw new SemanticError(`Variable "${token.value}" is already defined!`, null, token);
+        this._error(`Variable "${token.value}" is already defined!`, ErrorCode.DUPLICATE_ID, token);
+    }
+
+    _error(message, code, token) {
+        throw new SemanticError(message, code, token);
     }
 }

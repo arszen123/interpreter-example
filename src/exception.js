@@ -1,5 +1,11 @@
 
-class AbstractError extends Error {
+export const ErrorCode = Object.freeze({
+    UNEXPECTED_TOKEN: 'Unexpected token',
+    ID_NOT_FOUND: 'Identifier not found',
+    DUPLICATE_ID: 'Duplicate id found',
+})
+
+export class AbstractError extends Error {
     constructor(message, code, token) {
         super();
         this.message = `${this.constructor.name}: ${message}`;

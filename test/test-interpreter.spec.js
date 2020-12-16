@@ -1,11 +1,10 @@
-import { Lexer, Parser, Interpreter } from '../src/index.js';
-import { LexerError, ParserError } from '../src/exception.js';
+import { Lexer, Parser, Interpreter, LexerError, ParserError } from '../src/index.js';
 
 function instantiateInterpreter(program) {
     const lexer = new Lexer(program);
     const parser = new Parser(lexer);
-    const interpreter = new Interpreter(parser);
-    return interpreter
+    const tree = parser.parse();
+    return new Interpreter(tree);
 }
 
 
@@ -77,8 +76,7 @@ END.`;
 
 test('Test unterminated scope', function () {
     const program = `PROGRAM Prog1; BEGIN BEGIN END.`;
-    const interpreter = instantiateInterpreter(program);
-    expect(() => interpreter.eval()).toThrow();
+    expect(() => instantiateInterpreter(program)).toThrow(ParserError);
 });
 test('Test empty program', function () {
     const program = `PROGRAM Prog1; BEGIN END.`;
@@ -91,8 +89,7 @@ test('Test lexer error', function () {
     begin { Main }
        >  { lexical error }
     end.  { Main }`;
-    const interpreter = instantiateInterpreter(program);
-    expect(() => interpreter.eval()).toThrow(LexerError);
+    expect(() => instantiateInterpreter(program)).toThrow(LexerError);
 })
 test('Test parser error', function () {
     const program = `program Main;
@@ -102,8 +99,7 @@ test('Test parser error', function () {
     begin { Main }
        a := 5 + ;  { syntax error}
     end.  { Main }`;
-    const interpreter = instantiateInterpreter(program);
-    expect(() => interpreter.eval()).toThrow(ParserError);
+    expect(() => instantiateInterpreter(program)).toThrowError(ParserError);
 })
 
 test('Test declaration and comments', function () {

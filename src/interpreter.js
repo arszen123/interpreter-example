@@ -1,24 +1,18 @@
-import { Parser } from './parser.js';
 import { isTokenType } from './helper.js';
-import { BinOpNode, UnaryOpNode, NumNode, AssignNode, VarNode, CompoundNode, EmptyNode, BlockNode, ProcedureDeclarationNode, VarDeclarationNode, ProgramNode } from './node.js';
+import { BinOpNode, UnaryOpNode, NumNode, AssignNode, VarNode, CompoundNode, EmptyNode, BlockNode, ProcedureDeclarationNode, VarDeclarationNode, ProgramNode, ASTNode } from './node.js';
 import {
-    TOKEN_TYPE_PLUS,
-    TOKEN_TYPE_MINUS,
-    TOKEN_TYPE_MUL,
-    TOKEN_TYPE_DIV,
-    TOKEN_TYPE_FLOAT_DIV,
-    TOKEN_TYPE_POW,
+    TokenType,
 } from './token.js';
 import { NodeVisitor } from './node-visitor.js'
 
 export class Interpreter extends NodeVisitor {
     /**
      * 
-     * @param {Parser} parser 
+     * @param {ASTNode} tree
      */
-    constructor(parser) {
+    constructor(tree) {
         super();
-        this.parser = parser;
+        this.tree = tree;
         this.globalNamespace = {};
     }
 
@@ -109,22 +103,22 @@ export class Interpreter extends NodeVisitor {
      * @param {BinOpNode} node 
      */
     visitBinOpNode(node) {
-        if (isTokenType(node.op, TOKEN_TYPE_PLUS)) {
+        if (isTokenType(node.op, TokenType.PLUS)) {
             return this.visit(node.left) + this.visit(node.right);
         }
-        if (isTokenType(node.op, TOKEN_TYPE_MINUS)) {
+        if (isTokenType(node.op, TokenType.MINUS)) {
             return this.visit(node.left) - this.visit(node.right);
         }
-        if (isTokenType(node.op, TOKEN_TYPE_MUL)) {
+        if (isTokenType(node.op, TokenType.MUL)) {
             return this.visit(node.left) * this.visit(node.right);
         }
-        if (isTokenType(node.op, TOKEN_TYPE_DIV)) {
+        if (isTokenType(node.op, TokenType.DIV)) {
             return Math.floor(this.visit(node.left) / this.visit(node.right));
         }
-        if (isTokenType(node.op, TOKEN_TYPE_FLOAT_DIV)) {
+        if (isTokenType(node.op, TokenType.FLOAT_DIV)) {
             return this.visit(node.left) / this.visit(node.right);
         }
-        if (isTokenType(node.op, TOKEN_TYPE_POW)) {
+        if (isTokenType(node.op, TokenType.POW)) {
             return this.visit(node.left) ** this.visit(node.right);
         }
         this._error();
@@ -135,7 +129,7 @@ export class Interpreter extends NodeVisitor {
      * @param {UnaryOpNode} node 
      */
     visitUnaryOpNode(node) {
-        if (isTokenType(node.op, TOKEN_TYPE_MINUS)) {
+        if (isTokenType(node.op, TokenType.MINUS)) {
             return this.visit(node.expr) * -1;
         }
         return this.visit(node.expr);
@@ -149,8 +143,7 @@ export class Interpreter extends NodeVisitor {
     }
 
     eval() {
-        const genNode = this.parser.parse();
-        this.visit(genNode);
+        this.visit(this.tree);
     }
 
     getGlobalNamespace() {

@@ -10,25 +10,33 @@ class Symbol {
     constructor(name, type) {
         this.name = name;
         this.type = type;
-        finalize(this);
     }
 }
 
 export class BuiltInSymbol extends Symbol {
     constructor(name) {
         super(name, null);
+        finalize(this);
     }
 }
 
 export class VarSymbol extends Symbol {
     constructor(name, type) {
         super(name, type);
+        finalize(this);
     }
 }
 
 export class ProcedureSymbol extends Symbol {
-    constructor(name) {
+    /**
+     * 
+     * @param {String} name 
+     * @param {Symbol[]} args 
+     */
+    constructor(name, args) {
         super(name, null);
+        this.args = args || [];
+        finalize(this);
     }
 }
 

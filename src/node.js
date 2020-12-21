@@ -77,6 +77,20 @@ export class AssignNode extends ASTNode {
     }
 }
 
+export class ProcCallNode extends ASTNode {
+    /**
+     * @param {Token} nameToken
+     * @param {ASTNode[]} params
+     */
+    constructor(nameToken, params) {
+        super();
+        this.token = nameToken;
+        this.name = nameToken.value;
+        this.params = params || [];
+        finalize(this);
+    }
+}
+
 export class CompoundNode extends ASTNode {
     /**
      * @param {(CompoundNode|AssignNode|EmptyNode)[]} nodes 

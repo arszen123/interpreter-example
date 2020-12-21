@@ -43,7 +43,7 @@ export class Lexer {
         return this.text[this.pos];
     }
 
-    peak(idx) {
+    peek(idx) {
         idx = idx || 0;
         const index = this.pos + (idx <= 1 ? 1 : idx);
         if (this.text.length <= index) {
@@ -87,8 +87,8 @@ export class Lexer {
         }
         const parseNum = () => {
             let res = '';
-            while (isNumber(this.peak())) {
-                res += this.peak();
+            while (isNumber(this.peek())) {
+                res += this.peek();
                 this.advance();
             }
             return res;
@@ -96,7 +96,7 @@ export class Lexer {
         let tokenType = TokenType.INTEGER_CONST;
         let number = '' + this.currentChar + parseNum();
 
-        if (this.peak() === FLOAT_SEPARATOR) {
+        if (this.peek() === FLOAT_SEPARATOR) {
             tokenType = TokenType.REAL_CONST;
             this.advance();
             number += '.' + parseNum();
@@ -117,7 +117,7 @@ export class Lexer {
         if (this.currentChar === null) {
             return new Token(TokenType.EOF, null, tokenPosition);
         }
-        if (this.currentChar === ':' && this.peak() === '=') {
+        if (this.currentChar === ':' && this.peek() === '=') {
             this.advance();
             return new Token(TokenType.ASSIGN, ':=', tokenPosition);
         }
@@ -149,8 +149,8 @@ export class Lexer {
             return null;
         }
         let name = '' + this.currentChar;
-        while (isAlphaNum(this.peak())) {
-            name += this.peak();
+        while (isAlphaNum(this.peek())) {
+            name += this.peek();
             this.advance();
         }
         name = name.toUpperCase();

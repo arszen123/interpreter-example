@@ -111,3 +111,42 @@ test('Test id not found', function () {
    const analyzer = instantiateSemanticAnalyzer(program);
    expect(() => analyzer.eval()).toThrow(SemanticError);
 })
+
+test('Test procedure recognizion', function () {
+    const program = `program Main;
+    procedure AlphaA(a : integer; b: integer);
+       var c : real;
+    begin { AlphaA }
+       c := a + b;
+    end;  { AlphaA }
+ 
+ begin { Main }
+    AlphaA(3+5, 7);
+ end.  { Main }`;
+    const analyzer = instantiateSemanticAnalyzer(program);
+    expect(() => analyzer.eval()).not.toThrow();
+});
+
+test('Test undefined procedure recognizion', function () {
+    const program = `program Main;
+ begin { Main }
+    AlphaA(3+5, 7);
+ end.  { Main }`;
+    const analyzer = instantiateSemanticAnalyzer(program);
+    expect(() => analyzer.eval()).toThrow(SemanticError);
+});
+
+test('Test procedure argument number mismatch', function () {
+    const program = `program Main;
+    procedure AlphaA(a : integer; b: integer);
+       var c : real;
+    begin { AlphaA }
+       c := a + b;
+    end;  { AlphaA }
+ 
+ begin { Main }
+    AlphaA(3+5, 7, 7);
+ end.  { Main }`;
+    const analyzer = instantiateSemanticAnalyzer(program);
+    expect(() => analyzer.eval()).toThrow(SemanticError);
+});

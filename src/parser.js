@@ -1,5 +1,5 @@
 import { Lexer } from './lexer.js';
-import { BinOpNode, UnaryOpNode, NumNode, AssignNode, VarNode, CompoundNode, EmptyNode, BlockNode, VarDeclarationNode, ProcedureDeclarationNode, ProgramNode } from './node.js';
+import { BinOpNode, UnaryOpNode, NumNode, AssignNode, VarNode, CompoundNode, EmptyNode, BlockNode, VarDeclarationNode, ProcedureDeclarationNode, ProgramNode, ProcCallNode } from './node.js';
 import {
     Token,
     TokenType,
@@ -156,13 +156,43 @@ export class Parser {
     }
 
     /**
+     * grammar: ID LPAR (**addTerm** (COMMA **addTerm**)*)? RPAR
+     */
+    procCallStatement() {
+        const name = this.eat(TokenType.ID);
+        const params = [];
+
+        this.eat(TokenType.LPAR);
+
+        if (!this.lexer.isCurrentTokenType(TokenType.RPAR)) {
+            params.push(this.addTerm());
+            while (this.lexer.isCurrentTokenType(TokenType.COMMA)) {
+                this.eat(TokenType.COMMA);
+                params.push(this.addTerm());
+            }
+        }
+
+        this.eat(TokenType.RPAR);
+
+        return new ProcCallNode(name, params);
+    }
+
+    /**
      * grammar: **compoundStatement**
+     *        | **procCallStatement**
      *        | **assignStatement**
      *        | **emptyStatement**
      */
     statement() {
         if (this.lexer.isCurrentTokenType(TokenType.BEGIN)) {
             return this.compoundStatement();
+        }
+        if (
+            this.lexer.isCurrentTokenType(TokenType.ID) &&
+            // @todo add peek token or a valid char (skip whitespace/comment).
+            this.lexer.peek() === '('
+        ) {
+            return this.procCallStatement();
         }
         if (this.lexer.isCurrentTokenType(TokenType.ID)) {
             return this.assignStatement();

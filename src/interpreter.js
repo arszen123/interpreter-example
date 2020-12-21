@@ -1,5 +1,5 @@
 import { isTokenType } from './helper.js';
-import { BinOpNode, UnaryOpNode, NumNode, AssignNode, VarNode, CompoundNode, EmptyNode, BlockNode, ProcedureDeclarationNode, VarDeclarationNode, ProgramNode, ASTNode } from './node.js';
+import { BinOpNode, UnaryOpNode, NumNode, AssignNode, VarNode, CompoundNode, EmptyNode, BlockNode, ProcedureDeclarationNode, VarDeclarationNode, ProgramNode, ASTNode, ProcCallNode } from './node.js';
 import {
     TokenType,
 } from './token.js';
@@ -74,6 +74,16 @@ export class Interpreter extends NodeVisitor {
      */
     visitEmptyNode(node) {
         // nothing to do.
+    }
+
+    /**
+     * 
+     * @param {ProcCallNode} node 
+     */
+    visitProcCallNode(node) {
+        for(const paramNode of node.params) {
+            this.visit(paramNode);
+        }
     }
 
     /**

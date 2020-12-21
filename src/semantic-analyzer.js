@@ -1,6 +1,6 @@
 import { NodeVisitor } from './node-visitor.js'
 import { ScopedSymbolTable, BuiltInSymbol, VarSymbol, ProcedureSymbol } from './symbol.js';
-import { BinOpNode, UnaryOpNode, AssignNode, VarNode, CompoundNode, BlockNode, ProcedureDeclarationNode, VarDeclarationNode, ProgramNode, ASTNode } from './node.js';
+import { BinOpNode, UnaryOpNode, AssignNode, VarNode, CompoundNode, BlockNode, ProcedureDeclarationNode, VarDeclarationNode, ProgramNode, ASTNode, ProcCallNode } from './node.js';
 import { SemanticError, ErrorCode } from './exception.js';
 import { Token } from './token.js';
 import {log} from './logger.js';
@@ -78,7 +78,7 @@ export class SemanticAlanyzer extends NodeVisitor {
      */
     visitProcedureDeclarationNode(node) {
         const procName = node.name.value;
-        const procSymbol = new ProcedureSymbol(procName);
+        const procSymbol = new ProcedureSymbol(procName, []);
         this._currentScope.define(procSymbol);
 
         this._currentScope = this._currentScope.createChild(procName);
@@ -91,7 +91,9 @@ export class SemanticAlanyzer extends NodeVisitor {
                 this._errorVariableAlreadyDefined(paramNode.variable.token);
             }
             const symbolType = this._currentScope.lookup(varTypeName);
-            this._currentScope.define(new VarSymbol(name, symbolType));
+            const varSymbol = new VarSymbol(name, symbolType);
+            this._currentScope.define(varSymbol);
+            procSymbol.args.push(varSymbol);
         }
 
         this.visit(node.block);
@@ -121,6 +123,25 @@ export class SemanticAlanyzer extends NodeVisitor {
             this._errorUndefinedVariable(node.token);
         }
     }
+
+    /**
+     * 
+     * @param {ProcCallNode} node 
+     */
+    visitProcCallNode(node) {
+        /** @type {ProcedureSymbol} */
+        const procSymbol = this._currentScope.lookup(node.name);
+        if (!(procSymbol instanceof ProcedureSymbol)) {
+            this._errorUndefinedProcedure(node.token);
+        }
+        if (procSymbol.args.length !== node.params.length) {
+            this._error('Wrong number of arguments!');
+        }
+        for(const paramNode of node.params) {
+            this.visit(paramNode);
+        }
+    }
+
     /**
      * 
      * @param {AssignNode} node 
@@ -175,10 +196,18 @@ export class SemanticAlanyzer extends NodeVisitor {
 
     /**
      * 
-     * @param {*Token} name 
+     * @param {Token} name 
      */
     _errorVariableAlreadyDefined(token) {
         this._error(`Variable "${token.value}" is already defined!`, ErrorCode.DUPLICATE_ID, token);
+    }
+
+    /**
+     * 
+     * @param {Token} token 
+     */
+    _errorUndefinedProcedure(token) {
+        this._error(`Procedure "${token.value}" is not defined!`, ErrorCode.PROCEDURE_NOT_FOUND, token);
     }
 
     _error(message, code, token) {

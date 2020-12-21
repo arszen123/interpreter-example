@@ -1,9 +1,17 @@
-import log from 'loglevel';
+import logger from 'loglevel';
 
-const silent = () => log.disableAll();
-const noisy = () => log.enableAll();
+logger.setDefaultLevel('silent');
+logger.setLevel('silent');
+
+const scope = logger.getLogger('scope');
+const stack = logger.getLogger('stack');
+
 export {
-    log,
-    silent,
-    noisy,
-}
+    scope,
+    stack,
+};
+
+export default {
+    scope,
+    stack,
+};

@@ -4,6 +4,9 @@ import {
     TokenType,
 } from './token.js';
 import { NodeVisitor } from './node-visitor.js'
+import { CallStack, ActivationRecord } from './storage.js';
+import { stack as log } from './logger.js';
+
 
 export class Interpreter extends NodeVisitor {
     /**
@@ -13,7 +16,7 @@ export class Interpreter extends NodeVisitor {
     constructor(tree) {
         super();
         this.tree = tree;
-        this.globalNamespace = {};
+        this.callStack = new CallStack();
     }
 
     /**
@@ -21,7 +24,17 @@ export class Interpreter extends NodeVisitor {
      * @param {ProgramNode} node 
      */
     visitProgramNode(node) {
+        const ar = new ActivationRecord(
+            node.name.value,
+            ActivationRecord.TYPE.PROGRAM,
+            1,
+        );
+        log.info(`Entering stack ${ar.name}`);
+        this.callStack.push(ar);
         this.visit(node.block);
+        log.info(this.callStack.toString());
+        this.callStack.pop();
+        log.info(`Leaving stack ${ar.name}`);
     }
 
     /**
@@ -93,7 +106,7 @@ export class Interpreter extends NodeVisitor {
     visitAssignNode(node) {
         const variableName = node.left.name;
         const variableValue = this.visit(node.right);
-        this.globalNamespace[variableName] = variableValue;
+        this.callStack.peak().set(variableName, variableValue);
     }
 
     /**
@@ -102,10 +115,11 @@ export class Interpreter extends NodeVisitor {
      */
     visitVarNode(node) {
         const variableName = node.name;
-        if (typeof this.globalNamespace[variableName] === 'undefined') {
+        const variableValue = this.callStack.peak().get(variableName);
+        if (typeof variableValue === 'undefined') {
             throw new Error(`Undefined variable: ${variableName}`);
         }
-        return this.globalNamespace[variableName];
+        return variableValue;
     }
 
     /**
@@ -156,8 +170,8 @@ export class Interpreter extends NodeVisitor {
         this.visit(this.tree);
     }
 
-    getGlobalNamespace() {
-        return this.globalNamespace;
+    getCallStack() {
+        return this.callStack;
     }
 
     _error() {

@@ -3,7 +3,7 @@ import { ScopedSymbolTable, BuiltInSymbol, VarSymbol, ProcedureSymbol } from './
 import { BinOpNode, UnaryOpNode, AssignNode, VarNode, CompoundNode, BlockNode, ProcedureDeclarationNode, VarDeclarationNode, ProgramNode, ASTNode, ProcCallNode } from './node.js';
 import { SemanticError, ErrorCode } from './exception.js';
 import { Token } from './token.js';
-import {log} from './logger.js';
+import { scope as log } from './logger.js';
 
 /**
  * @param {ScopedSymbolTable} _currentScope

@@ -1,5 +1,5 @@
 import { finalize } from "./helper.js";
-import { log as logger } from './logger.js';
+import { scope as log } from './logger.js';
 
 class Symbol {
     /**
@@ -55,7 +55,6 @@ export class ScopedSymbolTable {
         this._name = name;
         this._level = level;
         this._parent = parent || null;
-        this.logger = logger;
         finalize(this);
     }
 
@@ -63,7 +62,7 @@ export class ScopedSymbolTable {
      * @param {Symbol} symbol 
      */
     define(symbol) {
-        this.logger.info(`Defnie symbol ${symbol.name} in scope ${this}`);
+        log.info(`Defnie symbol ${symbol.name} in scope ${this}`);
         this._symbols[symbol.name] = symbol;
     }
 
@@ -73,7 +72,7 @@ export class ScopedSymbolTable {
      * @returns {Symbol}
      */
     lookup(name, onlyCurrentScope) {
-        this.logger.info(`Lookup symbol ${name} in scope ${this}`);
+        log.info(`Lookup symbol ${name} in scope ${this}`);
         const symbol = this._symbols[name];
         if (onlyCurrentScope) {
             return symbol || null;

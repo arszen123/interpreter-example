@@ -24,18 +24,21 @@ export class CallStack {
     /**
      * @returns {ActivationRecord|null}
      */
-    peak() {
+    peek() {
         return this._stack[this._stack.length - 1] || null;
     }
 
     toString() {
-        return 'Call Stack:\n' + this._stack.reverse().join('\n');
+        const text = this._stack.reverse().join('\n');
+        this._stack.reverse();
+        return 'Call Stack:\n' + text;
     }
 
 }
 
 const ARType = Object.freeze({
     PROGRAM: 'PROGRAM',
+    PROCEDURE: 'PROCEDURE',
 });
 
 /**
@@ -68,8 +71,16 @@ export class ActivationRecord {
         return this._storage;
     }
 
+    createChild(name, type) {
+        return new ActivationRecord(
+            name,
+            type,
+            this.level + 1,
+        )
+    }
+
     toString() {
-        const head = `ActivationRecord(name=${this.name}, type=${this.type}, level=${this.level}):\n`;
+        const head = `${this.level} ActivationRecord(name=${this.name}, type=${this.type}, level=${this.level}):\n`;
         const bodyParts = [];
         for (const i in this._storage) {
             bodyParts.push(`\t${i}: ${this._storage[i]}`);

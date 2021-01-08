@@ -1,8 +1,12 @@
 import { Token } from './token.js';
 import { finalize } from './helper.js';
+import { ProcedureSymbol } from './symbol.js';
 
 export class ASTNode {
     constructor() { }
+    finalize() {
+        finalize(this);
+    }
 }
 
 export class NumNode extends ASTNode {
@@ -77,6 +81,9 @@ export class AssignNode extends ASTNode {
     }
 }
 
+/**
+ * @param {ProcedureSymbol} [procSymbol]
+ */
 export class ProcCallNode extends ASTNode {
     /**
      * @param {Token} nameToken
@@ -87,7 +94,8 @@ export class ProcCallNode extends ASTNode {
         this.token = nameToken;
         this.name = nameToken.value;
         this.params = params || [];
-        finalize(this);
+        this.procSymbol = null;
+        // finalize(this);
     }
 }
 

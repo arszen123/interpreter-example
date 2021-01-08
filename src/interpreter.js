@@ -29,12 +29,17 @@ export class Interpreter extends NodeVisitor {
             ActivationRecord.TYPE.PROGRAM,
             1,
         );
-        log.info(`Entering stack ${ar.name}`);
         this.callStack.push(ar);
-        this.visit(node.block);
+        
+        log.info(`ENTERING PROGRAM: ${ar.name}`);
         log.info(this.callStack.toString());
+
+        this.visit(node.block);
+        
+        log.info(`LEAVING PROGRAM: ${ar.name}`);
+        log.info(this.callStack.toString());
+
         this.callStack.pop();
-        log.info(`Leaving stack ${ar.name}`);
     }
 
     /**
@@ -68,7 +73,7 @@ export class Interpreter extends NodeVisitor {
      * @param {ProcedureDeclarationNode} node 
      */
     visitProcedureDeclarationNode(node) {
-        this.visit(node.block);
+
     }
 
     /**
@@ -94,9 +99,27 @@ export class Interpreter extends NodeVisitor {
      * @param {ProcCallNode} node 
      */
     visitProcCallNode(node) {
-        for(const paramNode of node.params) {
-            this.visit(paramNode);
+        const ar = this.callStack.peek().createChild(node.name, ActivationRecord.TYPE.PROCEDURE);
+        this.callStack.push(ar);
+
+        const procSymbol = node.procSymbol;
+        const procArgs = procSymbol.args;
+        const params = node.params;
+        for(const idx in params) {
+            const paramNode = params[idx];
+            const arg = procArgs[idx];
+            ar.set(arg.name, this.visit(paramNode));
         }
+        
+        log.info(`ENTERING PROCEDURE: ${node.name}`);
+        log.info(this.callStack.toString());
+
+        this.visit(procSymbol.blockAstNode);
+
+        log.info(`LEAVING PROCEDURE: ${node.name}`);
+        log.info(this.callStack.toString());
+
+        this.callStack.pop();
     }
 
     /**
@@ -106,7 +129,7 @@ export class Interpreter extends NodeVisitor {
     visitAssignNode(node) {
         const variableName = node.left.name;
         const variableValue = this.visit(node.right);
-        this.callStack.peak().set(variableName, variableValue);
+        this.callStack.peek().set(variableName, variableValue);
     }
 
     /**
@@ -115,7 +138,7 @@ export class Interpreter extends NodeVisitor {
      */
     visitVarNode(node) {
         const variableName = node.name;
-        const variableValue = this.callStack.peak().get(variableName);
+        const variableValue = this.callStack.peek().get(variableName);
         if (typeof variableValue === 'undefined') {
             throw new Error(`Undefined variable: ${variableName}`);
         }

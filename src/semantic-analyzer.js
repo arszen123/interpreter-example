@@ -78,7 +78,7 @@ export class SemanticAlanyzer extends NodeVisitor {
      */
     visitProcedureDeclarationNode(node) {
         const procName = node.name.value;
-        const procSymbol = new ProcedureSymbol(procName, []);
+        const procSymbol = new ProcedureSymbol(procName, [], node.block);
         this._currentScope.define(procSymbol);
 
         this._currentScope = this._currentScope.createChild(procName);
@@ -137,6 +137,7 @@ export class SemanticAlanyzer extends NodeVisitor {
         if (procSymbol.args.length !== node.params.length) {
             this._error('Wrong number of arguments!');
         }
+        node.procSymbol = procSymbol;
         for(const paramNode of node.params) {
             this.visit(paramNode);
         }

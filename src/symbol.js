@@ -1,5 +1,6 @@
 import { finalize } from "./helper.js";
 import { scope as log } from './logger.js';
+import { ASTNode } from "./node.js";
 
 class Symbol {
     /**
@@ -32,10 +33,12 @@ export class ProcedureSymbol extends Symbol {
      * 
      * @param {String} name 
      * @param {Symbol[]} args 
+     * @param {ASTNode} blockAstNode
      */
-    constructor(name, args) {
+    constructor(name, args, blockAstNode) {
         super(name, null);
         this.args = args || [];
+        this.blockAstNode = blockAstNode;
         finalize(this);
     }
 }

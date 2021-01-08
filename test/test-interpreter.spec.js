@@ -12,7 +12,7 @@ function instantiateInterpreter(program) {
  * @param {Interpreter} interpreter 
  */
 function getStorage(interpreter) {
-    return (interpreter.getCallStack().peak() || {getStorage: () => undefined }).getStorage();
+    return (interpreter.getCallStack().peek() || {getStorage: () => undefined }).getStorage();
 }
 
 xtest('Test simple Pascal statements', function () {

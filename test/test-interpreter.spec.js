@@ -90,6 +90,7 @@ test('Test empty program', function () {
     const interpreter = instantiateInterpreter(program);
     expect(() => interpreter.eval()).not.toThrow();
 });
+
 test('Test lexer error', function () {
     const program = `program Main;
 
@@ -180,5 +181,5 @@ test('Test procedure definition', function () {
  begin { Main }
  end.  { Main }`;
     const interpreter = instantiateInterpreter(program);
-    expect(() => interpreter.eval()).toThrow();
+    expect(() => interpreter.eval()).not.toThrow();
 });

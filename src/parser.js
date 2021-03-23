@@ -5,6 +5,7 @@ import {
     TokenType,
 } from './token.js';
 import { ParserError, ErrorCode } from './exception.js';
+import {isTokenType} from './helper';
 
 export class Parser {
     /**
@@ -24,7 +25,7 @@ export class Parser {
             this._error(tokenType);
         }
         const res = this.lexer.currentToken;
-        this.lexer.getNextToken();
+        this.lexer.nextToken();
         return res;
     }
 
@@ -189,8 +190,7 @@ export class Parser {
         }
         if (
             this.lexer.isCurrentTokenType(TokenType.ID) &&
-            // @todo add peek token or a valid char (skip whitespace/comment).
-            this.lexer.peek() === '('
+            isTokenType(this.lexer.peekToken(), TokenType.LPAR)
         ) {
             return this.procCallStatement();
         }

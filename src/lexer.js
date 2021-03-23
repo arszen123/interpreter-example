@@ -4,6 +4,7 @@ import {
     TokenType,
 } from './token.js';
 import { LexerError } from './exception.js';
+import { CircularBuffer } from './utils.js';
 
 const COMMENT_START_CHAR = '{';
 const COMMENT_END_CHAR = '}';
@@ -31,9 +32,15 @@ export class Lexer {
     constructor(text) {
         this.text = text;
         this.pos = 0;
-        this.currentToken = this._getToken();
         this.lineno = 1;
         this.column = 1;
+        this.tokenBuffer = new CircularBuffer(2);
+        this._initBuffer();
+    }
+
+    _initBuffer() {
+        this.tokenBuffer.put(this._getToken());
+        this.nextToken();
     }
 
     get currentChar() {
@@ -41,6 +48,10 @@ export class Lexer {
             return null;
         }
         return this.text[this.pos];
+    }
+
+    get currentToken() {
+        return this.tokenBuffer.peek();
     }
 
     peek(idx) {
@@ -134,14 +145,17 @@ export class Lexer {
         this._error();
     }
 
-    getNextToken() {
+    nextToken() {
         this.advance();
-        this.currentToken = this._getToken();
-        return this.currentToken;
+        this.tokenBuffer.put(this._getToken());
     }
 
     isCurrentTokenType(type) {
         return isTokenType(this.currentToken, type);
+    }
+
+    peekToken(num) {
+        return this.tokenBuffer.peek(Math.max((num || 0), 0) + 1);
     }
 
     _id(tokenPosition) {

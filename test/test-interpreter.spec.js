@@ -95,9 +95,9 @@ test('Test lexer error', function () {
     const program = `program Main;
 
     begin { Main }
-       >  { lexical error }
+       >  { parser error }
     end.  { Main }`;
-    expect(() => instantiateInterpreter(program)).toThrow(LexerError);
+    expect(() => instantiateInterpreter(program)).toThrow(ParserError);
 })
 test('Test parser error', function () {
     const program = `program Main;
@@ -183,3 +183,16 @@ test('Test procedure definition', function () {
     const interpreter = instantiateInterpreter(program);
     expect(() => interpreter.eval()).not.toThrow();
 });
+
+
+test('Test expression', function () {
+    const program = `program Main;
+        var a: boolean;
+            b,c: integer;
+    begin { Main }
+        b:= 10;
+        c := 20;
+       a := b = c;
+    end.  { Main }`;
+    expect(() => instantiateInterpreter(program));
+})

@@ -21,6 +21,18 @@ export class NumNode extends ASTNode {
     }
 }
 
+export class BoolNode extends ASTNode {
+    /**
+     * @param {Token} token 
+     */
+     constructor(token, value) {
+        super();
+        this.token = token;
+        this.value = value;
+        finalize(this);
+    }
+}
+
 export class BinOpNode extends ASTNode {
     /**
      * @param {ASTNode} left 
@@ -96,6 +108,23 @@ export class ProcCallNode extends ASTNode {
         this.params = params || [];
         this.procSymbol = null;
         // finalize(this);
+    }
+}
+
+export class IfStatementNode extends ASTNode {
+
+    /**
+     * 
+     * @param {ASTNode} expr 
+     * @param {ASTNode} thenStatement 
+     * @param {ASTNode} elseStatement 
+     */
+     constructor(expr, thenStatement, elseStatement) {
+        super();
+        this.expr = expr;
+        this.thenStatement = thenStatement;
+        this.elseStatement = elseStatement;
+        finalize(this);
     }
 }
 

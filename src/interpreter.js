@@ -1,5 +1,5 @@
 import { isTokenType } from './helper.js';
-import { BinOpNode, UnaryOpNode, NumNode, AssignNode, VarNode, CompoundNode, EmptyNode, BlockNode, ProcedureDeclarationNode, VarDeclarationNode, ProgramNode, ASTNode, ProcCallNode } from './node.js';
+import { BinOpNode, UnaryOpNode, NumNode, AssignNode, VarNode, CompoundNode, EmptyNode, BlockNode, ProcedureDeclarationNode, VarDeclarationNode, ProgramNode, ASTNode, ProcCallNode, IfStatementNode } from './node.js';
 import {
     TokenType,
 } from './token.js';
@@ -168,7 +168,34 @@ export class Interpreter extends NodeVisitor {
         if (isTokenType(node.op, TokenType.POW)) {
             return this.visit(node.left) ** this.visit(node.right);
         }
-        this._error();
+        if (isTokenType(node.op, TokenType.EQ)) {
+            return this.visit(node.left) == this.visit(node.right);
+        }
+        if (isTokenType(node.op, TokenType.NEQ)) {
+            return this.visit(node.left) != this.visit(node.right);
+        }
+        if (isTokenType(node.op, TokenType.LT)) {
+            return this.visit(node.left) < this.visit(node.right);
+        }
+        if (isTokenType(node.op, TokenType.LTE)) {
+            return this.visit(node.left) <= this.visit(node.right);
+        }
+        if (isTokenType(node.op, TokenType.GT)) {
+            return this.visit(node.left) > this.visit(node.right);
+        }
+        if (isTokenType(node.op, TokenType.GTE)) {
+            return this.visit(node.left) >= this.visit(node.right);
+        }
+        if (isTokenType(node.op, TokenType.OR)) {
+            return this.visit(node.left) || this.visit(node.right);
+        }
+        if (isTokenType(node.op, TokenType.XOR)) {
+            return this.visit(node.left) && this.visit(node.right);
+        }
+        if (isTokenType(node.op, TokenType.AND)) {
+            return this.visit(node.left) && this.visit(node.right);
+        }
+        this._errorOperatorNotDefined(node.op);
     }
 
     /**
@@ -178,6 +205,9 @@ export class Interpreter extends NodeVisitor {
     visitUnaryOpNode(node) {
         if (isTokenType(node.op, TokenType.MINUS)) {
             return this.visit(node.expr) * -1;
+        }
+        if (isTokenType(node.op, TokenType.NOT)) {
+            return !this.visit(node.expr);
         }
         return this.visit(node.expr);
     }
@@ -189,6 +219,22 @@ export class Interpreter extends NodeVisitor {
         return node.value;
     }
 
+    visitBoolNode(node) {
+        return node.value;
+    }
+
+    /**
+     * 
+     * @param {IfStatementNode} node 
+     */
+    visitIfStatementNode(node) {
+        if (this.visit(node.expr)) {
+            this.visit(node.thenStatement);
+        } else if (node.elseStatement) {
+            this.visit(node.elseStatement);
+        }
+    }
+
     eval() {
         this.visit(this.tree);
     }
@@ -197,7 +243,7 @@ export class Interpreter extends NodeVisitor {
         return this.callStack;
     }
 
-    _error() {
-        throw new Error('General error!');
+    _errorOperatorNotDefined(token) {
+        throw new Error(`Error "${token}" not defined!`);
     }
 }

@@ -1,11 +1,23 @@
 import { Lexer } from './lexer.js';
-import { BinOpNode, UnaryOpNode, NumNode, AssignNode, VarNode, CompoundNode, EmptyNode, BlockNode, VarDeclarationNode, ProcedureDeclarationNode, ProgramNode, ProcCallNode } from './node.js';
+import { BinOpNode, UnaryOpNode, NumNode, BoolNode, AssignNode, VarNode, CompoundNode, EmptyNode, BlockNode, VarDeclarationNode, ProcedureDeclarationNode, ProgramNode, ProcCallNode, IfStatementNode } from './node.js';
 import {
     Token,
     TokenType,
 } from './token.js';
 import { ParserError, ErrorCode } from './exception.js';
-import {isTokenType} from './helper';
+import {isTokenType} from './helper.js';
+
+function isComparisionOperator(token) {
+    const ops = [
+        TokenType.LT,
+        TokenType.LTE,
+        TokenType.GT,
+        TokenType.GTE,
+        TokenType.EQ,
+        TokenType.NEQ,
+    ];
+    return ops.includes(token.type);
+}
 
 export class Parser {
     /**
@@ -47,27 +59,32 @@ export class Parser {
         let varType;
         if (this.lexer.isCurrentTokenType(TokenType.REAL)) {
             varType = this.eat(TokenType.REAL);
-        } else {
+        } else if (this.lexer.isCurrentTokenType(TokenType.INTEGER)) {
             varType = this.eat(TokenType.INTEGER);
+        } else if (this.lexer.isCurrentTokenType(TokenType.BOOLEAN)) {
+            varType = this.eat(TokenType.BOOLEAN);
         }
         return varType;
     }
 
     /**
-     * grammar: PLUS **atom**
-     *        | MINUS **atom**
+     * grammar: PLUS **factor**
+     *        | MINUS **factor**
      *        | INTEGER_CONST
      *        | REAL_CONST
-     *        | LPAR **addTerm** RPAR
+     *        | LPAR **expression** RPAR
      *        | **variable**
      * 
      */
-    atom() {
+     factor() {
         if (this.lexer.isCurrentTokenType(TokenType.PLUS)) {
-            return new UnaryOpNode(this.eat(TokenType.PLUS), this.atom());
+            return new UnaryOpNode(this.eat(TokenType.PLUS), this.factor());
         }
         if (this.lexer.isCurrentTokenType(TokenType.MINUS)) {
-            return new UnaryOpNode(this.eat(TokenType.MINUS), this.atom());
+            return new UnaryOpNode(this.eat(TokenType.MINUS), this.factor());
+        }
+        if (this.lexer.isCurrentTokenType(TokenType.NOT)) {
+            return new UnaryOpNode(this.eat(TokenType.NOT), this.factor());
         }
         if (this.lexer.isCurrentTokenType(TokenType.INTEGER_CONST)) {
             return new NumNode(this.eat(TokenType.INTEGER_CONST));
@@ -75,11 +92,14 @@ export class Parser {
         if (this.lexer.isCurrentTokenType(TokenType.REAL_CONST)) {
             return new NumNode(this.eat(TokenType.REAL_CONST));
         }
+        if (this.lexer.isCurrentTokenType(TokenType.TRUE) || this.lexer.isCurrentTokenType(TokenType.FALSE)) {
+            return new BoolNode(this.eat(this.lexer.currentToken.type), this.lexer.isCurrentTokenType(TokenType.TRUE));
+        }
         if (this.lexer.isCurrentTokenType(TokenType.LPAR)) {
             let node = null;
 
             this.eat(TokenType.LPAR);
-            node = this.addTerm();
+            node = this.expression();
             this.eat(TokenType.RPAR);
 
             return node;
@@ -88,10 +108,10 @@ export class Parser {
     }
 
     /**
-     * grammar: **atom** (POW **powTerm**)*
+     * grammar: **factor** (POW **powTerm**)*
      */
     powTerm() {
-        let node = this.atom();
+        let node = this.factor();
 
         while (this.lexer.isCurrentTokenType(TokenType.POW)) {
             node = new BinOpNode(node, this.eat(TokenType.POW), this.powTerm());
@@ -100,42 +120,62 @@ export class Parser {
     }
 
     /**
-     * grammar: **powTerm** ((MUL|DIV|FLOAT_DIV) **powTerm**)*
+     * grammar: **factor** ((MUL|DIV|FLOAT_DIV) **factor**)*
      */
-    mulTerm() {
-        let node = this.powTerm();
+     term() {
+        let node = this.factor();
 
         const isM = () => this.lexer.isCurrentTokenType(TokenType.MUL);
         const isD = () => this.lexer.isCurrentTokenType(TokenType.DIV);
         const isFD = () => this.lexer.isCurrentTokenType(TokenType.FLOAT_DIV);
-        while (isM() || isD() || isFD()) {
+        const isAnd = () => this.lexer.isCurrentTokenType(TokenType.AND);
+        while (isM() || isD() || isFD() || isAnd()) {
             if (isM()) {
-                node = new BinOpNode(node, this.eat(TokenType.MUL), this.powTerm());
+                node = new BinOpNode(node, this.eat(TokenType.MUL), this.factor());
             } else if (isD()) {
-                node = new BinOpNode(node, this.eat(TokenType.DIV), this.powTerm());
-            } else {
-                node = new BinOpNode(node, this.eat(TokenType.FLOAT_DIV), this.powTerm());
+                node = new BinOpNode(node, this.eat(TokenType.DIV), this.factor());
+            } else if (isFD()) {
+                node = new BinOpNode(node, this.eat(TokenType.FLOAT_DIV), this.factor());
+            } else if (isAnd()) {
+                node = new BinOpNode(node, this.eat(TokenType.AND), this.factor());
             }
         }
         return node;
     }
 
     /**
-     * grammar: **mulTerm** ((MINUS|PLUS) **mulTerm**)*
+     * grammar: **term** ((MINUS|PLUS|OR|XOR) **term**)*
      */
-    addTerm() {
-        let node = this.mulTerm();
+     simpleExpression() {
+        let node = this.term();
 
         const isM = () => this.lexer.isCurrentTokenType(TokenType.MINUS);
         const isP = () => this.lexer.isCurrentTokenType(TokenType.PLUS);
-        while (isM() || isP()) {
+        const isOr = () => this.lexer.isCurrentTokenType(TokenType.OR);
+        const isXor = () => this.lexer.isCurrentTokenType(TokenType.XOR);
+        while (isM() || isP() || isOr() || isXor()) {
             if (isM()) {
-                node = new BinOpNode(node, this.eat(TokenType.MINUS), this.mulTerm());
-            } else {
-                node = new BinOpNode(node, this.eat(TokenType.PLUS), this.mulTerm());
+                node = new BinOpNode(node, this.eat(TokenType.MINUS), this.term());
+            } else if (isP()) {
+                node = new BinOpNode(node, this.eat(TokenType.PLUS), this.term());
+            } else if (isOr()) {
+                node = new BinOpNode(node, this.eat(TokenType.OR), this.term());
+            } else if (isXor()) {
+                node = new BinOpNode(node, this.eat(TokenType.XOR), this.term());
             }
         }
         return node;
+    }
+
+    /**
+     * grammar: **simpleExpression** (COMPARISON_OP **simpleExpression**)
+     */
+    expression() {
+        let simpleExpression = this.simpleExpression();
+        if (isComparisionOperator(this.lexer.currentToken)) {
+            simpleExpression = new BinOpNode(simpleExpression, this.eat(this.lexer.currentToken.type), this.simpleExpression());
+        }
+        return simpleExpression
     }
 
     /**
@@ -146,18 +186,18 @@ export class Parser {
     }
 
     /**
-     * grammar: **variable** ASSIGN **addTerm**
+     * grammar: **variable** ASSIGN **expression**
      */
     assignStatement() {
         return new AssignNode(
             this.variable(),
             this.eat(TokenType.ASSIGN),
-            this.addTerm()
+            this.expression()
         );
     }
 
     /**
-     * grammar: ID LPAR (**addTerm** (COMMA **addTerm**)*)? RPAR
+     * grammar: ID LPAR (**expression** (COMMA **expression**)*)? RPAR
      */
     procCallStatement() {
         const name = this.eat(TokenType.ID);
@@ -166,10 +206,10 @@ export class Parser {
         this.eat(TokenType.LPAR);
 
         if (!this.lexer.isCurrentTokenType(TokenType.RPAR)) {
-            params.push(this.addTerm());
+            params.push(this.expression());
             while (this.lexer.isCurrentTokenType(TokenType.COMMA)) {
                 this.eat(TokenType.COMMA);
-                params.push(this.addTerm());
+                params.push(this.expression());
             }
         }
 
@@ -179,10 +219,27 @@ export class Parser {
     }
 
     /**
+     * grammar: IF **expression** THEN **statement** (ELSE **statement**)?
+     */
+    ifStatement() {
+        this.eat(TokenType.IF);
+        const expr = this.expression();
+        this.eat(TokenType.THEN);
+        const thenStatement = this.statement();
+        let elseStatement = null;
+        if (this.lexer.isCurrentTokenType(TokenType.ELSE)) {
+            this.eat(TokenType.ELSE);
+            elseStatement = this.statement();
+        }
+        return new IfStatementNode(expr, thenStatement, elseStatement);
+    }
+
+    /**
      * grammar: **compoundStatement**
      *        | **procCallStatement**
      *        | **assignStatement**
      *        | **emptyStatement**
+     *        | **ifStatement**
      */
     statement() {
         if (this.lexer.isCurrentTokenType(TokenType.BEGIN)) {
@@ -196,6 +253,9 @@ export class Parser {
         }
         if (this.lexer.isCurrentTokenType(TokenType.ID)) {
             return this.assignStatement();
+        }
+        if (this.lexer.isCurrentTokenType(TokenType.IF)) {
+            return this.ifStatement();
         }
         return this.emptyStatement();
     }

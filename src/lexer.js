@@ -132,6 +132,18 @@ export class Lexer {
             this.advance();
             return new Token(TokenType.ASSIGN, ':=', tokenPosition);
         }
+        if (this.currentChar === '<' && this.peek() === '>') {
+            this.advance();
+            return new Token(TokenType.NEQ, '<>', tokenPosition);
+        }
+        if (this.currentChar === '<' && this.peek() === '=') {
+            this.advance();
+            return new Token(TokenType.GTE, '>=', tokenPosition);
+        }
+        if (this.currentChar === '>' && this.peek() === '=') {
+            this.advance();
+            return new Token(TokenType.LTE, '<=', tokenPosition);
+        }
         const tokenType = TokenType.findByValue(this.currentChar);
         if (tokenType) {
             return new Token(tokenType, TokenType.getValue(tokenType), tokenPosition);

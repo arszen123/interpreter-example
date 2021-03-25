@@ -1,6 +1,6 @@
 import { NodeVisitor } from './node-visitor.js'
 import { ScopedSymbolTable, BuiltInSymbol, VarSymbol, ProcedureSymbol } from './symbol.js';
-import { BinOpNode, UnaryOpNode, AssignNode, VarNode, CompoundNode, BlockNode, ProcedureDeclarationNode, VarDeclarationNode, ProgramNode, ASTNode, ProcCallNode } from './node.js';
+import { BinOpNode, UnaryOpNode, AssignNode, VarNode, CompoundNode, BlockNode, ProcedureDeclarationNode, VarDeclarationNode, ProgramNode, ASTNode, ProcCallNode, IfStatementNode } from './node.js';
 import { SemanticError, ErrorCode } from './exception.js';
 import { Token } from './token.js';
 import { scope as log } from './logger.js';
@@ -24,6 +24,7 @@ export class SemanticAlanyzer extends NodeVisitor {
     _defineBuiltInTypes() {
         this._currentScope.define(new BuiltInSymbol('INTEGER'));
         this._currentScope.define(new BuiltInSymbol('REAL'));
+        this._currentScope.define(new BuiltInSymbol('BOOLEAN'));
     }
 
     /**
@@ -169,13 +170,27 @@ export class SemanticAlanyzer extends NodeVisitor {
      * @param {UnaryOpNode} node 
      */
     visitUnaryOpNode(node) {
-        this.visit(node.right);
+        this.visit(node.expr);
     }
 
     visitEmptyNode(node) {
     }
 
     visitNumNode(node) {
+    }
+
+    visitBoolNode(node) {
+    }
+
+    /**
+     * 
+     * @param {IfStatementNode} node 
+     */
+    visitIfStatementNode(node) {
+        this.visit(node.thenStatement);
+        if (node.elseStatement) {
+            this.visit(node.elseStatement);
+        }
     }
 
     eval() {

@@ -1,5 +1,5 @@
 import { isTokenType } from './helper.js';
-import { BinOpNode, UnaryOpNode, NumNode, AssignNode, VarNode, CompoundNode, EmptyNode, BlockNode, ProcedureDeclarationNode, VarDeclarationNode, ProgramNode, ASTNode, ProcCallNode, IfStatementNode } from './node.js';
+import { BinOpNode, UnaryOpNode, NumNode, AssignNode, VarNode, CompoundNode, EmptyNode, BlockNode, ProcedureDeclarationNode, VarDeclarationNode, ProgramNode, ASTNode, ProcCallNode, IfStatementNode, TestNode } from './node.js';
 import {
     TokenType,
 } from './token.js';
@@ -232,6 +232,22 @@ export class Interpreter extends NodeVisitor {
             this.visit(node.thenStatement);
         } else if (node.elseStatement) {
             this.visit(node.elseStatement);
+        }
+    }
+
+    visitLoopNode(node) {
+        let exitLoop = false;
+        while (!exitLoop) {
+            for (const iNode of node.nodes) {
+                if (iNode instanceof TestNode) {
+                    exitLoop = this.visit(iNode.expr);
+                    if (exitLoop) {
+                        break;
+                    }
+                } else {
+                    this.visit(iNode);
+                }
+            }
         }
     }
 

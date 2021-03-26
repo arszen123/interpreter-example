@@ -1,5 +1,5 @@
 import { Lexer } from './lexer.js';
-import { BinOpNode, UnaryOpNode, NumNode, BoolNode, AssignNode, VarNode, CompoundNode, EmptyNode, BlockNode, VarDeclarationNode, ProcedureDeclarationNode, ProgramNode, ProcCallNode, IfStatementNode } from './node.js';
+import { LoopNode, TestNode, BinOpNode, UnaryOpNode, NumNode, BoolNode, AssignNode, VarNode, CompoundNode, EmptyNode, BlockNode, VarDeclarationNode, ProcedureDeclarationNode, ProgramNode, ProcCallNode, IfStatementNode } from './node.js';
 import {
     Token,
     TokenType,
@@ -33,6 +33,9 @@ export class Parser {
      * @param {Token} tokenType 
      */
     eat(tokenType) {
+        if (typeof tokenType === 'undefined') {
+            tokenType = this.lexer.currentToken.type;
+        }
         if (!this.lexer.isCurrentTokenType(tokenType)) {
             this._error(tokenType);
         }
@@ -93,7 +96,7 @@ export class Parser {
             return new NumNode(this.eat(TokenType.REAL_CONST));
         }
         if (this.lexer.isCurrentTokenType(TokenType.TRUE) || this.lexer.isCurrentTokenType(TokenType.FALSE)) {
-            return new BoolNode(this.eat(this.lexer.currentToken.type), this.lexer.isCurrentTokenType(TokenType.TRUE));
+            return new BoolNode(this.eat(), this.lexer.isCurrentTokenType(TokenType.TRUE));
         }
         if (this.lexer.isCurrentTokenType(TokenType.LPAR)) {
             let node = null;
@@ -173,7 +176,7 @@ export class Parser {
     expression() {
         let simpleExpression = this.simpleExpression();
         if (isComparisionOperator(this.lexer.currentToken)) {
-            simpleExpression = new BinOpNode(simpleExpression, this.eat(this.lexer.currentToken.type), this.simpleExpression());
+            simpleExpression = new BinOpNode(simpleExpression, this.eat(), this.simpleExpression());
         }
         return simpleExpression
     }
@@ -235,11 +238,68 @@ export class Parser {
     }
 
     /**
+     * grammar: WHILE **expression** DO **statement**
+     */
+    whileStatement() {
+        this.eat(TokenType.WHILE);
+        const expression = this.expression();
+        this.eat(TokenType.DO);
+        const statement = this.statement();
+
+        return new LoopNode([new TestNode(new UnaryOpNode(new Token(TokenType.NOT, 'NOT'), expression)), statement]);
+    }
+
+    /**
+     * grammar: REPEAT **statementList** UNTIL **expression**
+     */
+    repeatStatement() {
+        this.eat(TokenType.REPEAT);
+        const statements = this.statementList();
+        this.eat(TokenType.UNTIL);
+        const expr = this.expression();
+        return new LoopNode([...statements, new TestNode(expr)]);
+    }
+
+    /**
+     * grammar: FOR **assignStatement** (TO|DOWNTO) **expression** DO **statement**
+     */
+    forStatement() {
+        this.eat(TokenType.FOR);
+        const assignment = this.assignStatement();
+        const isDowntoStatement = this.lexer.isCurrentTokenType(TokenType.DOWNTO);
+        const isToStatement = this.lexer.isCurrentTokenType(TokenType.TO);
+        const binOpToken = isToStatement ? new Token(TokenType.PLUS, '+') : new Token(TokenType.MINUS, '-');
+        const comparisionOpToken = isToStatement ? new Token(TokenType.LT, '<') : new Token(TokenType.GT, '>');
+        if (isToStatement || isDowntoStatement) {
+            this.eat();
+        } else {
+            this._error(TokenType.TO);
+        }
+        const expr = this.expression();
+        const stepStatement = new AssignNode(assignment.left, assignment.op, new BinOpNode(assignment.left, binOpToken, new NumNode(new Token(TokenType.INTEGER_CONST, 1))));
+        this.eat(TokenType.DO);
+        const statement = this.statement();
+
+        return new CompoundNode([
+            assignment,
+            new LoopNode([
+                new TestNode(new BinOpNode(expr, comparisionOpToken, assignment.left)),
+                statement,
+                stepStatement
+            ])
+        ]);
+    }
+
+    /**
      * grammar: **compoundStatement**
      *        | **procCallStatement**
      *        | **assignStatement**
      *        | **emptyStatement**
      *        | **ifStatement**
+     *        | **whileStatement**
+     *        | **repeatStatement**
+     *        | **forStatement**
+     * 
      */
     statement() {
         if (this.lexer.isCurrentTokenType(TokenType.BEGIN)) {
@@ -256,6 +316,15 @@ export class Parser {
         }
         if (this.lexer.isCurrentTokenType(TokenType.IF)) {
             return this.ifStatement();
+        }
+        if (this.lexer.isCurrentTokenType(TokenType.WHILE)) {
+            return this.whileStatement();
+        }
+        if (this.lexer.isCurrentTokenType(TokenType.REPEAT)) {
+            return this.repeatStatement();
+        }
+        if (this.lexer.isCurrentTokenType(TokenType.FOR)) {
+            return this.forStatement();
         }
         return this.emptyStatement();
     }

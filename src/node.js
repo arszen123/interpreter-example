@@ -198,3 +198,22 @@ export class ProgramNode extends ASTNode {
         finalize(this);
     }
 }
+
+export class TestNode extends ASTNode {
+    /**
+     * @param {ASTNode} expr 
+     */
+    constructor(expr) {
+        super();
+        this.expr = expr;
+        finalize(this);
+    }
+}
+
+export class LoopNode extends ASTNode {
+    constructor(nodes) {
+        super();
+        this.nodes = nodes;
+        finalize(this);
+    }
+}

@@ -41,6 +41,13 @@ const TOKEN_TYPE_THEN = 'THEN';
 const TOKEN_TYPE_ELSE = 'ELSE';
 const TOKEN_TYPE_TRUE = 'TRUE';
 const TOKEN_TYPE_FALSE = 'FALSE';
+const TOKEN_TYPE_WHILE = 'WHILE';
+const TOKEN_TYPE_DO = 'DO';
+const TOKEN_TYPE_REPEAT = 'REPEAT';
+const TOKEN_TYPE_UNTIL = 'UNTIL';
+const TOKEN_TYPE_FOR = 'FOR';
+const TOKEN_TYPE_TO = 'TO';
+const TOKEN_TYPE_DOWNTO = 'DOWNTO';
 
 const TokenValues = Object.freeze({
     // single char
@@ -73,6 +80,13 @@ const TokenValues = Object.freeze({
     [TOKEN_TYPE_ELSE]: 'ELSE',
     [TOKEN_TYPE_TRUE]: 'TRUE',
     [TOKEN_TYPE_FALSE]: 'FALSE',
+    [TOKEN_TYPE_WHILE]: 'WHILE',
+    [TOKEN_TYPE_DO]: 'DO',
+    [TOKEN_TYPE_REPEAT]: 'REPEAT',
+    [TOKEN_TYPE_UNTIL]: 'UNTIL',
+    [TOKEN_TYPE_FOR]: 'FOR',
+    [TOKEN_TYPE_TO]: 'TO',
+    [TOKEN_TYPE_DOWNTO]: 'DOWNTO',
     [TOKEN_TYPE_END]: 'END',
     // comparison operators
     [TOKEN_TYPE_LT]: '<',
@@ -126,6 +140,13 @@ export const TokenType = Object.freeze({
     [TOKEN_TYPE_ELSE]: TOKEN_TYPE_ELSE,
     [TOKEN_TYPE_TRUE]: TOKEN_TYPE_TRUE,
     [TOKEN_TYPE_FALSE]: TOKEN_TYPE_FALSE,
+    [TOKEN_TYPE_WHILE]: TOKEN_TYPE_WHILE,
+    [TOKEN_TYPE_DO]: TOKEN_TYPE_DO,
+    [TOKEN_TYPE_REPEAT]: TOKEN_TYPE_REPEAT,
+    [TOKEN_TYPE_UNTIL]: TOKEN_TYPE_UNTIL,
+    [TOKEN_TYPE_FOR]: TOKEN_TYPE_FOR,
+    [TOKEN_TYPE_TO]: TOKEN_TYPE_TO,
+    [TOKEN_TYPE_DOWNTO]: TOKEN_TYPE_DOWNTO,
     [TOKEN_TYPE_END]: TOKEN_TYPE_END,
     // comparison operators
     [TOKEN_TYPE_LT]: TOKEN_TYPE_LT,

@@ -195,4 +195,25 @@ test('Test expression', function () {
        a := b = c;
     end.  { Main }`;
     expect(() => instantiateInterpreter(program));
+});
+
+test('Test control statements', function () {
+    const program = `program Main;
+    var a: boolean;
+        b,c,d: integer;
+begin { Main }
+    a := true;
+    c := 0;
+    d := 0;
+    if a then 
+        a := false;
+    for b := 0 to 10 do
+        c := c + b;
+    while b > 0 do
+        b := b - 3;
+    repeat
+        d := d + 1;
+    until d > 10;
+end.  { Main }`;
+    expect(() => instantiateInterpreter(program)).not.toThrow();
 })

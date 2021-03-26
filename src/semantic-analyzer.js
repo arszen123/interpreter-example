@@ -1,6 +1,6 @@
 import { NodeVisitor } from './node-visitor.js'
 import { ScopedSymbolTable, BuiltInSymbol, VarSymbol, ProcedureSymbol } from './symbol.js';
-import { BinOpNode, UnaryOpNode, AssignNode, VarNode, CompoundNode, BlockNode, ProcedureDeclarationNode, VarDeclarationNode, ProgramNode, ASTNode, ProcCallNode, IfStatementNode } from './node.js';
+import { BinOpNode, UnaryOpNode, AssignNode, VarNode, CompoundNode, BlockNode, ProcedureDeclarationNode, VarDeclarationNode, ProgramNode, ASTNode, ProcCallNode, IfStatementNode, TestNode } from './node.js';
 import { SemanticError, ErrorCode } from './exception.js';
 import { Token } from './token.js';
 import { scope as log } from './logger.js';
@@ -190,6 +190,15 @@ export class SemanticAlanyzer extends NodeVisitor {
         this.visit(node.thenStatement);
         if (node.elseStatement) {
             this.visit(node.elseStatement);
+        }
+    }
+
+    visitLoopNode(node) {
+        for (const iNode of node.nodes) {
+            if (iNode instanceof TestNode) {
+                continue;
+            }
+            this.visit(iNode);
         }
     }
 

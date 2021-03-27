@@ -17,7 +17,7 @@ export class NumNode extends ASTNode {
         super();
         this.token = token;
         this.value = token.value;
-        finalize(this);
+        //finalize(this);
     }
 }
 
@@ -29,7 +29,7 @@ export class BoolNode extends ASTNode {
         super();
         this.token = token;
         this.value = value;
-        finalize(this);
+        //finalize(this);
     }
 }
 
@@ -44,7 +44,7 @@ export class BinOpNode extends ASTNode {
         this.left = left;
         this.token = this.op = op;
         this.right = right;
-        finalize(this);
+        // finalize(this);
     }
 }
 
@@ -57,7 +57,7 @@ export class UnaryOpNode extends ASTNode {
         super();
         this.token = this.op = op;
         this.expr = expr;
-        finalize(this);
+        //finalize(this);
     }
 }
 export class EmptyNode extends ASTNode {
@@ -74,7 +74,7 @@ export class VarNode extends ASTNode {
         super();
         this.token = token;
         this.name = token.value;
-        finalize(this);
+        // finalize(this);
     }
 }
 

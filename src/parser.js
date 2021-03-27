@@ -96,7 +96,8 @@ export class Parser {
             return new NumNode(this.eat(TokenType.REAL_CONST));
         }
         if (this.lexer.isCurrentTokenType(TokenType.TRUE) || this.lexer.isCurrentTokenType(TokenType.FALSE)) {
-            return new BoolNode(this.eat(), this.lexer.isCurrentTokenType(TokenType.TRUE));
+            const isTrue = this.lexer.isCurrentTokenType(TokenType.TRUE);
+            return new BoolNode(this.eat(), isTrue);
         }
         if (this.lexer.isCurrentTokenType(TokenType.LPAR)) {
             let node = null;

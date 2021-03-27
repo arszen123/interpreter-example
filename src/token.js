@@ -187,7 +187,37 @@ export const TokenType = Object.freeze({
         }
         return res;
     },
-})
+    isArithmeticOperator(tokenOrType) {
+        return [
+            TokenType.PLUS,
+            TokenType.MINUS,
+            TokenType.MUL,
+            TokenType.FLOAT_DIV,
+            TokenType.DIV,
+        ].some(isTokenType(tokenOrType));
+    },
+    isComparisonOperator(tokenOrType) {
+        return [
+            TokenType.LT,
+            TokenType.LTE,
+            TokenType.EQ,
+            TokenType.NEQ,
+            TokenType.GT,
+            TokenType.GTE,
+        ].some(isTokenType(tokenOrType));
+    },
+    isBooleanOperator(tokenOrType) {
+        return [
+            TokenType.AND,
+            TokenType.OR,
+            TokenType.XOR,
+        ].some(isTokenType(tokenOrType));
+    }
+});
+
+function isTokenType(tokenOrType) {
+    return tokenType => tokenOrType === tokenType || tokenOrType.type === tokenType
+}
 
 export class Token {
     /**

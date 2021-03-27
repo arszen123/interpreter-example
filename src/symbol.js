@@ -15,8 +15,8 @@ class Symbol {
 }
 
 export class BuiltInSymbol extends Symbol {
-    constructor(name) {
-        super(name, null);
+    constructor(name, type) {
+        super(name, type);
         finalize(this);
     }
 }

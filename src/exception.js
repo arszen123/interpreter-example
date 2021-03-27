@@ -3,7 +3,9 @@ export const ErrorCode = Object.freeze({
     UNEXPECTED_TOKEN: 'Unexpected token',
     ID_NOT_FOUND: 'Identifier not found',
     DUPLICATE_ID: 'Duplicate id found',
-    PROCEDURE_NOT_FOUND: 'Procedure not found'
+    PROCEDURE_NOT_FOUND: 'Procedure not found',
+    OPERATION_TYPE_MISMATCH: 'Operation type mismatch',
+    WRONG_FUNCTION_PARAMETER_LIST: 'Wrong function parameter list',
 })
 
 export class AbstractError extends Error {

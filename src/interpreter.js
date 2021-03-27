@@ -100,7 +100,6 @@ export class Interpreter extends NodeVisitor {
      */
     visitProcCallNode(node) {
         const ar = this.callStack.peek().createChild(node.name, ActivationRecord.TYPE.PROCEDURE);
-        this.callStack.push(ar);
 
         const procSymbol = node.procSymbol;
         const procArgs = procSymbol.args;
@@ -111,6 +110,7 @@ export class Interpreter extends NodeVisitor {
             ar.set(arg.name, this.visit(paramNode));
         }
         
+        this.callStack.push(ar);
         log.info(`ENTERING PROCEDURE: ${node.name}`);
         log.info(this.callStack.toString());
 
